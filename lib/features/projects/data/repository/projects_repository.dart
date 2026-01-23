@@ -10,7 +10,7 @@ class ProjectsRepository {
   /// Get project list
   Future<ApiResponse<List<ProjectListModel>>> getProjectList() async {
     try {
-      final response = await _apiClient.get('/project/list');
+      final response = await _apiClient.get(ApiConstants.projectList);
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -41,6 +41,138 @@ class ProjectsRepository {
     } catch (e) {
       return ApiResponse.error(
         'Error fetching projects: $e',
+        error: e,
+      );
+    }
+  }
+
+  /// Get states list
+  Future<ApiResponse<List<StateModel>>> getStates() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.getStates);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        
+        // Note: API returns 'status' instead of 'success' for this endpoint
+        if (data['status'] == true && data['data'] != null) {
+          final List<dynamic> statesJson = data['data'];
+          final states = statesJson
+              .map((json) => StateModel.fromJson(json))
+              .toList();
+
+          return ApiResponse.success(
+            states,
+            message: data['message'] ?? 'States fetched successfully',
+            code: response.statusCode,
+          );
+        } else {
+          return ApiResponse.error(
+            data['message'] ?? 'Failed to fetch states',
+            code: response.statusCode,
+          );
+        }
+      } else {
+        return ApiResponse.error(
+          'Failed to fetch states',
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(
+        'Error fetching states: $e',
+        error: e,
+      );
+    }
+  }
+  /// Create Project
+  Future<ApiResponse<Map<String, dynamic>>> createProject({
+    required String projectName,
+    required String clientName,
+    required String companyName,
+    required int stateId,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.createProject,
+        data: {
+          'project_name': projectName,
+          'client_name': clientName,
+          'company_name': companyName,
+          'state_id': stateId,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+         final data = response.data;
+         if (data['status'] == true) {
+           return ApiResponse.success(
+             data['data'],
+             message: data['message'] ?? 'Project created successfully',
+             code: response.statusCode,
+           );
+         } else {
+           return ApiResponse.error(
+             data['message'] ?? 'Failed to create project',
+             code: response.statusCode,
+           );
+         }
+      } else {
+        return ApiResponse.error(
+          response.data['message'] ?? 'Failed to create project',
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(
+        'Error creating project: $e',
+        error: e,
+      );
+    }
+  }
+
+  /// Update Project
+  Future<ApiResponse<Map<String, dynamic>>> updateProject({
+    required int projectId,
+    required String projectName,
+    required String clientName,
+    required String companyName,
+    required int stateId,
+  }) async {
+    try {
+      final response = await _apiClient.put(
+        "${ApiConstants.updateProject}/$projectId",
+        data: {
+          'project_name': projectName,
+          'client_name': clientName,
+          'company_name': companyName,
+          'state_id': stateId,
+        },
+      );
+
+      if (response.statusCode == 200) {
+         final data = response.data;
+         if (data['status'] == true) {
+           return ApiResponse.success(
+             data['data'],
+             message: data['message'] ?? 'Project updated successfully',
+             code: response.statusCode,
+           );
+         } else {
+           return ApiResponse.error(
+             data['message'] ?? 'Failed to update project',
+             code: response.statusCode,
+           );
+         }
+      } else {
+        return ApiResponse.error(
+          response.data['message'] ?? 'Failed to update project',
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(
+        'Error updating project: $e',
         error: e,
       );
     }

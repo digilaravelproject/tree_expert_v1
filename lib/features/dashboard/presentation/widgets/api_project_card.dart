@@ -68,9 +68,9 @@ class ApiProjectCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "${(_getProgressValue() * 100).toInt()}%",
+                        "${project.treesCount}/${project.limit ?? '∞'}",
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: _getProgressColor(),
                         ),
@@ -218,8 +218,11 @@ class ApiProjectCard extends StatelessWidget {
                   label: "Add Tree",
                   color: context.theme.primaryColor,
                   onTap: () {
-                    // Navigate to add tree page with project ID
-                    Get.toNamed('/addTrees', arguments: {'projectId': project.id});
+                    // Navigate to add tree page with project ID and count
+                    Get.toNamed('/addTrees', arguments: {
+                      'projectId': project.id,
+                      'treesCount': project.treesCount,
+                    });
                   },
                 ),
               ],
@@ -273,11 +276,10 @@ class ApiProjectCard extends StatelessWidget {
   }
 
   // Calculate progress value (0.0 to 1.0)
-  // TODO: Replace with actual progress from API when available
   double _getProgressValue() {
-    // For now, calculate based on project ID (demo purposes)
-    // In real app, this should come from API
-    final progress = (project.id % 10) * 0.1;
+    // If limit is null (infinite) or 0, return 0.0 progress
+    if (project.limit == null || project.limit! <= 0) return 0.0;
+    final progress = project.treesCount / project.limit!;
     return progress.clamp(0.0, 1.0);
   }
 

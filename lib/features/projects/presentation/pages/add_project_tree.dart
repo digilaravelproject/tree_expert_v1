@@ -169,16 +169,10 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                         _buildEnhancedTextField(
                           controller: controller.stateController,
                           label: "State",
-                          hint: "Select or enter state",
+                          hint: "Select state",
                           icon: Icons.map_outlined,
-                        ),
-                        SizedBox(height: 16),
-                        
-                        _buildEnhancedTextField(
-                          controller: controller.districtController,
-                          label: "District",
-                          hint: "Select or enter district",
-                          icon: Icons.location_city_outlined,
+                          readOnly: true,
+                          onTap: () => _showStateSelectionBottomSheet(context),
                         ),
                       ],
                     ),
@@ -210,6 +204,7 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                   backgroundColor: context.theme.primaryColor,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 16),
+                  minimumSize: Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -249,6 +244,140 @@ class AddProjectPage extends GetWidget<AddProjectController> {
     );
   }
 
+  void _showStateSelectionBottomSheet(BuildContext context) {
+    TextEditingController searchController = TextEditingController();
+    
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.7,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                margin: EdgeInsets.only(top: 10),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                "Select State",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            
+            // Search Bar
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: "Search state...",
+                  prefixIcon: Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onChanged: (val) {
+                  // Trigger rebuild using GetX typically, or use StatefulBuilder.
+                  // Since we are inside Get.bottomSheet and accessing controller.statesList which is Obx,
+                  // we can use a local RxString for search query
+                  controller.update(); // Just to trigger update if we used GetBuilder, but here we can't easily.
+                  // Let's use a nested Obx or StatefulBuilder for the list
+                  // Actually, modifying a reactive variable in controller is better.
+                  // But let's use StatefulBuilder inside the list part to keep it simple without adding search var to controller
+                  // Wait, modifying controller is cleaner. let's add filtering logic in the Obx below
+                },
+              ),
+            ),
+            
+            SizedBox(height: 10),
+            
+            Expanded(
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: searchController,
+                builder: (context, value, child) {
+                  final query = value.text.toLowerCase();
+                  
+                  return Obx(() {
+                    if (controller.statesList.isEmpty) {
+                       return Center(child: CircularProgressIndicator());
+                    }
+
+                    final filteredStates = controller.statesList.where((state) {
+                      return state.stateName.toLowerCase().contains(query);
+                    }).toList();
+                    
+                    if (filteredStates.isEmpty) {
+                      return Center(child: Text("No states found"));
+                    }
+
+                    return ListView.separated(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      itemCount: filteredStates.length,
+                      separatorBuilder: (c, i) => Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final state = filteredStates[index];
+                        // Access selectedState.value inside Obx to trigger rebuild on selection change
+                        final isSelected = controller.selectedState.value?.id == state.id;
+                        
+                        return InkWell(
+                          onTap: () {
+                            controller.selectState(state);
+                            Get.back();
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            color: isSelected ? context.theme.primaryColor.withOpacity(0.05) : null,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    state.stateName,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: isSelected ? context.theme.primaryColor : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Icon(Icons.check, color: context.theme.primaryColor, size: 20),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  });
+                }
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
   Widget _buildSectionHeader({required IconData icon, required String title}) {
     return Row(
       children: [
@@ -278,6 +407,8 @@ class AddProjectPage extends GetWidget<AddProjectController> {
     required String label,
     required String hint,
     required IconData icon,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,9 +424,12 @@ class AddProjectPage extends GetWidget<AddProjectController> {
         SizedBox(height: 8),
         TextField(
           controller: controller,
+          readOnly: readOnly,
+          onTap: onTap,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
+            suffixIcon: readOnly ? Icon(Icons.arrow_drop_down, color: Colors.grey.shade600) : null,
             filled: true,
             fillColor: Colors.grey.shade50,
             border: OutlineInputBorder(

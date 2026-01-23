@@ -8,13 +8,15 @@ class AddTreesPage extends GetWidget<AddTreeController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(
-          "Add Tree",
+        title: Obx(() => Text(
+          "Add Tree (${controller.currentTreeIndex.value + 1})",
           style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        )),
         centerTitle: true,
         elevation: 0,
       ),
@@ -61,31 +63,18 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                     title: "Tree Details",
                     icon: Icons.park,
                     children: [
-                      Autocomplete<String>(
-                        optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text.isEmpty) {
-                            return const Iterable<String>.empty();
-                          }
-                          return controller.treeNameSuggestions.where((String option) {
-                            return option.toLowerCase().contains(
-                              textEditingValue.text.toLowerCase(),
-                            );
-                          });
+                      GestureDetector(
+                        onTap: () {
+                          _showTreeSelectionSheet(context);
                         },
-                        onSelected: (String selection) {
-                          controller.treeNameController.text = selection;
-                          controller.onTreeNameChanged(selection);
-                        },
-                        fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                          controller.treeNameController.text = textEditingController.text;
-                          return _buildTextField(
-                            controller: textEditingController,
+                        child: AbsorbPointer(
+                          child: _buildTextField(
+                            controller: controller.treeNameController,
                             label: "Tree Name",
-                            hint: "Search tree name",
-                            focusNode: focusNode,
-                            onChanged: controller.onTreeNameChanged,
-                          );
-                        },
+                            hint: "Select Tree",
+                            // suffixIcon: Icon(Icons.arrow_drop_down), // Optional UI hint
+                          ),
+                        ),
                       ),
                       SizedBox(height: 12),
                       _buildTextField(
@@ -130,34 +119,37 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                         ],
                       )),
                       SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
                             child: _buildTextField(
                               controller: controller.girthController,
-                              label: "Girth",
+                              label: "Girth (cm)",
                               hint: "0.0",
                               keyboardType: TextInputType.number,
                             ),
                           ),
                           SizedBox(width: 12),
                           Expanded(
-                            child: _buildTextField(
+                            child: Obx(() => _buildTextField(
                               controller: controller.heightController,
-                              label: "Height",
-                              hint: "0.0",
+                              label: "Height (${controller.selectedUnit.value == 'Meter' ? 'm' : 'ft'})",
+                              hint: controller.isCalculating.value ? "Calculating..." : "0.0",
                               keyboardType: TextInputType.number,
-                            ),
+                              enabled: !controller.isCalculating.value,
+                            )),
                           ),
                         ],
                       ),
                       SizedBox(height: 12),
-                      _buildTextField(
+                      Obx(() => _buildTextField(
                         controller: controller.canopyController,
-                        label: "Canopy",
-                        hint: "0.0",
+                        label: "Canopy (${controller.selectedUnit.value == 'Meter' ? 'm' : 'ft'})",
+                        hint: controller.isCalculating.value ? "Calculating..." : "0.0",
                         keyboardType: TextInputType.number,
-                      ),
+                        enabled: !controller.isCalculating.value,
+                      )),
                     ],
                   ),
 
@@ -411,45 +403,101 @@ class AddTreesPage extends GetWidget<AddTreeController> {
               ],
             ),
             child: SafeArea(
-              child: Obx(() => ElevatedButton(
-                onPressed: controller.isLoading.value ? null : controller.submitTree,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: controller.isLoading.value
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              child: Obx(() => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Submit Button (Always Visible)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ElevatedButton(
+                      onPressed: controller.isLoading.value ? null : controller.submitAllTrees,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade700,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            "Submit Tree Data",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                      ),
+                      child: controller.isLoading.value
+                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(
+                              controller.localTrees.isEmpty 
+                                  ? "Submit" 
+                                  : "Submit All (${controller.localTrees.length + 1})", 
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                            ),
+                    ),
+                  ),
+                  
+                  // Navigation Row
+                  Row(
+                    children: [
+                      // Previous Button
+                      if (controller.currentTreeIndex.value > 0)
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: controller.isLoading.value ? null : controller.onPrevious,
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              side: BorderSide(color: Colors.grey.shade400),
+                            ),
+                            child: Text("Previous", style: TextStyle(color: Colors.black87)),
+                          ),
+                        ),
+                      
+                      if (controller.currentTreeIndex.value > 0)
+                        SizedBox(width: 12),
+                        
+                      // Continue Button
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: controller.isLoading.value ? null : controller.onContinue,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
+                          child: Text("Continue (Next Tree)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
                       ),
+                    ],
+                  ),
+                ],
               )),
             ),
           ),
         ],
       ),
-    );
+    ));
+  }
+  
+  Future<bool> _onWillPop() async {
+    // If not dirty or no trees, maybe just pop?
+    // User requirement: "submit pe tb back hoga" -> means if I press back, I discard changes.
+    // So always ask validation if not submitted.
+    return await Get.dialog<bool>(
+      AlertDialog(
+        title: Text("Discard Changes?"),
+        content: Text("Are you sure you want to discard your changes and go back?"),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false), // Stay
+            child: Text("No"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Get.back(result: true), // Pop
+            child: Text("Yes, Discard"),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   Widget _buildSectionCard({
@@ -765,6 +813,106 @@ class AddTreesPage extends GetWidget<AddTreeController> {
       ),
       barrierColor: Colors.black,
       useSafeArea: false,
+    );
+  }
+
+
+  void _showTreeSelectionSheet(BuildContext context) {
+    // Local search controller for the sheet
+    final searchController = TextEditingController();
+    final RxString searchQuery = ''.obs;
+
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.8,
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            Text(
+              "Select Tree",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Search Bar
+            TextField(
+              controller: searchController,
+              onChanged: (val) => searchQuery.value = val,
+              decoration: InputDecoration(
+                hintText: "Search trees...",
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+            SizedBox(height: 12),
+            
+            // List
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoadingTrees.value) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                final trees = controller.trees.where((tree) {
+                  final query = searchQuery.value.toLowerCase();
+                  return tree.commonName.toLowerCase().contains(query) ||
+                         tree.scientificName.toLowerCase().contains(query);
+                }).toList();
+
+                if (trees.isEmpty) {
+                  return Center(
+                    child: Text("No trees found"),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: trees.length,
+                  separatorBuilder: (_, __) => Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final tree = trees[index];
+                    return ListTile(
+                      title: Text(
+                        tree.commonName,
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        "${tree.scientificName} • ${tree.family}",
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                      onTap: () {
+                        controller.selectTree(tree);
+                        Get.back();
+                      },
+                    );
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 }

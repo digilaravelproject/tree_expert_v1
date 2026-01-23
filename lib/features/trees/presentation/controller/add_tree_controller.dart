@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import '../../../dashboard/presentation/controller/home_controller.dart';
 import '../../../location/location_manager.dart';
 import '../../../camera/presentation/page/geo_tag_camera_page.dart';
+import '../../../camera/presentation/page/geo_tag_camera_page.dart';
 import '../../../camera/binding/geo_camera_binding.dart';
+import '../../data/repository/trees_repository.dart';
+import '../../data/model/tree_model.dart';
+import '../../data/model/tree_entry.dart';
+import 'dart:async'; // For timer
 
 class AddTreeController extends GetxController {
   final LocationManager locationManager = LocationManager.instance;
@@ -33,8 +40,22 @@ class AddTreeController extends GetxController {
   final RxList<String> capturedPhotos = <String>[].obs; // Multiple photos with paths
   final RxBool isLoading = false.obs;
   final RxInt currentTreeNo = 1.obs;
+  
+  // IDs
+  String? projectId;
+  String? userId;
 
-  // Dropdown options
+  final RxList<TreeModel> trees = <TreeModel>[].obs;
+  final RxBool isLoadingTrees = false.obs;
+  late final TreesRepository _treesRepository;
+  
+  Timer? _debounce;
+  final RxBool isCalculating = false.obs;
+
+  // Local storage for multi-tree flow
+  final RxList<TreeEntry> localTrees = <TreeEntry>[].obs;
+  final RxInt currentTreeIndex = 0.obs; // 0-indexed for array, displayed as 1-indexed
+
   final List<String> conditions = [
     'Poor',
     'Medium',
@@ -59,75 +80,139 @@ class AddTreeController extends GetxController {
     'Riverside'
   ];
 
-  // Tree name suggestions (sample data - should come from API)
-  final List<String> treeNameSuggestions = [
-    'Neem',
-    'Banyan',
-    'Peepal',
-    'Mango',
-    'Teak',
-    'Sal',
-    'Bamboo',
-    'Oak',
-    'Pine',
-    'Eucalyptus',
-  ];
-
   @override
   void onInit() {
     super.onInit();
+    _treesRepository = Get.find<TreesRepository>();
+    fetchTrees();
     _initializeForm();
+    _fetchUserId();
+
+    // Listen to girth changes for auto-calculation
+    girthController.addListener(_onGirthChanged);
+
+
+    // Listen to location updates
+    ever(locationManager.currentPosition, (Position? position) {
+      if (position != null) {
+        _updateLocationFields(position);
+      }
+    });
+
+    // Listen to address updates
+    ever(locationManager.currentAddress, (String address) {
+      if (address.isNotEmpty) {
+        addressController.text = address;
+      }
+    });
+  }
+
+  void _fetchUserId() {
+    try {
+      if (Get.isRegistered<HomeController>()) {
+        final homeController = Get.find<HomeController>();
+        userId = homeController.userId.value.toString();
+        print("Fetched User ID from Home: $userId");
+      } else {
+        // Fallback or retry?
+        print("HomeController not found for User ID");
+      }
+    } catch (e) {
+      print("Error fetching user ID: $e");
+    }
+  }
+
+  void _onGirthChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 800), () {
+       if (girthController.text.isNotEmpty) {
+          final girth = double.tryParse(girthController.text);
+          if (girth != null) {
+            calculateMetrics(girth);
+          }
+       }
+    });
   }
 
   void _initializeForm() {
     // Get project ID from arguments if passed
     final args = Get.arguments;
-    if (args != null && args is Map && args.containsKey('projectId')) {
-      // TODO: Fetch last tree number for this project and increment
-      currentTreeNo.value = 1;
+    int baseTreeCount = 0;
+    
+    if (args != null && args is Map) {
+      if (args.containsKey('projectId')) {
+        projectId = args['projectId'].toString();
+      }
+      if (args.containsKey('treesCount')) {
+         baseTreeCount = int.tryParse(args['treesCount'].toString()) ?? 0;
+      }
+      
+      // Initial Tree No = base + 1 + currentIndex
+      currentTreeNo.value = baseTreeCount + 1 + currentTreeIndex.value;
     }
     
-    treeNoController.text = currentTreeNo.value.toString();
+    treeNoController.text = "T-${currentTreeNo.value}";
     
     // Auto-fill GPS coordinates
     _captureGPSLocation();
   }
 
+  void _updateLocationFields(Position position) {
+    latitudeController.text = position.latitude.toStringAsFixed(6);
+    longitudeController.text = position.longitude.toStringAsFixed(6);
+    accuracyController.text = "${position.accuracy.toStringAsFixed(1)}m";
+  }
+
+  // Initial fetch called in _initializeForm
   void _captureGPSLocation() {
-    latitudeController.text = locationManager.latitude.value.toStringAsFixed(6);
-    longitudeController.text = locationManager.longitude.value.toStringAsFixed(6);
-    accuracyController.text = '10m'; // TODO: Get actual accuracy
-    
-    // Auto-fill address from location
+    if (locationManager.currentPosition.value != null) {
+      _updateLocationFields(locationManager.currentPosition.value!);
+    }
     if (locationManager.currentAddress.value.isNotEmpty) {
       addressController.text = locationManager.currentAddress.value;
     }
   }
 
-  void onTreeNameChanged(String value) {
-    // Auto-fill scientific name and family based on tree name
-    // This is sample logic - should fetch from API/database
-    switch (value.toLowerCase()) {
-      case 'neem':
-        scientificNameController.text = 'Azadirachta indica';
-        familyController.text = 'Meliaceae';
-        break;
-      case 'banyan':
-        scientificNameController.text = 'Ficus benghalensis';
-        familyController.text = 'Moraceae';
-        break;
-      case 'peepal':
-        scientificNameController.text = 'Ficus religiosa';
-        familyController.text = 'Moraceae';
-        break;
-      case 'mango':
-        scientificNameController.text = 'Mangifera indica';
-        familyController.text = 'Anacardiaceae';
-        break;
-      default:
-        scientificNameController.clear();
-        familyController.clear();
+  Future<void> calculateMetrics(double girthCm) async {
+    isCalculating.value = true;
+    final response = await _treesRepository.measureTree(girth: girthCm);
+    isCalculating.value = false;
+
+    if (response.success && response.data != null) {
+      final data = response.data!;
+      // API returns: girth_cm, estimated_height_m, estimated_canopy_m, estimated_age_years
+      
+      if (selectedUnit.value == 'Meter') {
+        heightController.text = (data['estimated_height_m'] ?? 0).toString();
+        canopyController.text = (data['estimated_canopy_m'] ?? 0).toString();
+      } else {
+        // Convert M to Feet
+        double heightM = (data['estimated_height_m'] ?? 0).toDouble();
+        double canopyM = (data['estimated_canopy_m'] ?? 0).toDouble();
+        heightController.text = (heightM * 3.28084).toStringAsFixed(2);
+        canopyController.text = (canopyM * 3.28084).toStringAsFixed(2);
+      }
+      
+      ageController.text = (data['estimated_age_years'] ?? 0).toString();
     }
+  }
+
+  Future<void> fetchTrees() async {
+    isLoadingTrees.value = true;
+    final response = await _treesRepository.getTrees();
+    isLoadingTrees.value = false;
+
+    if (response.success && response.data != null) {
+      trees.value = response.data!;
+    } else {
+      Get.snackbar("Error", response.message ?? "Failed to load trees");
+    }
+  }
+
+  void selectTree(TreeModel tree) {
+    treeNameController.text = tree.commonName;
+    scientificNameController.text = tree.scientificName;
+    familyController.text = tree.family;
   }
 
   Future<void> capturePhoto() async {
@@ -159,35 +244,176 @@ class AddTreeController extends GetxController {
   }
 
   void toggleUnit() {
-    selectedUnit.value = selectedUnit.value == 'Meter' ? 'Feet' : 'Meter';
+    final currentUnit = selectedUnit.value;
+    final newUnit = currentUnit == 'Meter' ? 'Feet' : 'Meter';
+    
+    // Meters to Feet
+    if (newUnit == 'Feet') {
+      // Girth: CM -> Inches (REMOVED: Girth always CM)
+      // _convertField(girthController, 1 / 2.54); 
+      // Height: M -> Feet
+      _convertField(heightController, 3.28084);
+      // Canopy: M -> Feet
+      _convertField(canopyController, 3.28084);
+    } 
+    // Feet to Meters
+    else {
+      // Girth: Inches -> CM (REMOVED: Girth always CM)
+      // _convertField(girthController, 2.54);
+      // Height: Feet -> M
+      _convertField(heightController, 1 / 3.28084);
+      // Canopy: Feet -> M
+      _convertField(canopyController, 1 / 3.28084);
+    }
+
+    selectedUnit.value = newUnit;
   }
 
-  Future<void> submitTree() async {
-    // Validation
+  void _convertField(TextEditingController controller, double factor) {
+    if (controller.text.isEmpty) return;
+    double? val = double.tryParse(controller.text);
+    if (val != null) {
+      controller.text = (val * factor).toStringAsFixed(2);
+    }
+  }
+
+  // Navigation Logic
+  void onPrevious() {
+    if (currentTreeIndex.value > 0) {
+      _saveCurrentTreeToLocal();
+      currentTreeIndex.value--;
+      _loadTreeFromLocal(currentTreeIndex.value);
+    }
+  }
+
+  void onContinue() {
+    if (_validateCurrentForm()) {
+      _saveCurrentTreeToLocal();
+      currentTreeIndex.value++;
+      
+      // Load next if exists, else reset for new
+      if (currentTreeIndex.value < localTrees.length) {
+        _loadTreeFromLocal(currentTreeIndex.value);
+      } else {
+        _resetFormForNext();
+      }
+    }
+  }
+
+  bool _validateCurrentForm() {
     if (treeNameController.text.trim().isEmpty) {
       Get.snackbar("Error", "Tree name is required");
+      return false;
+    }
+    // Add other validations if needed
+    return true;
+  }
+
+  void _saveCurrentTreeToLocal() {
+     final entry = TreeEntry(
+       wardPlotNo: wardPlotNoController.text,
+       treeNo: treeNoController.text,
+       treeName: treeNameController.text,
+       scientificName: scientificNameController.text,
+       family: familyController.text,
+       girth: girthController.text,
+       height: heightController.text,
+       canopy: canopyController.text,
+       age: ageController.text,
+       condition: selectedCondition.value,
+       proposedFor: selectedProposedFor.value,
+       ownership: selectedOwnership.value,
+       address: addressController.text,
+       landmark: landmarkController.text,
+       concernPerson: concernPersonController.text,
+       remark: remarkController.text,
+       latitude: latitudeController.text,
+       longitude: longitudeController.text,
+       accuracy: accuracyController.text,
+       unit: selectedUnit.value,
+       projectId: projectId,
+       userId: userId,
+       photos: List.from(capturedPhotos),
+     );
+
+     if (currentTreeIndex.value < localTrees.length) {
+       localTrees[currentTreeIndex.value] = entry;
+     } else {
+       localTrees.add(entry);
+     }
+  }
+
+  void _loadTreeFromLocal(int index) {
+    if (index >= 0 && index < localTrees.length) {
+      final entry = localTrees[index];
+      wardPlotNoController.text = entry.wardPlotNo ?? '';
+      treeNoController.text = entry.treeNo ?? '';
+      treeNameController.text = entry.treeName ?? '';
+      scientificNameController.text = entry.scientificName ?? '';
+      familyController.text = entry.family ?? '';
+      girthController.text = entry.girth ?? '';
+      heightController.text = entry.height ?? '';
+      canopyController.text = entry.canopy ?? '';
+      ageController.text = entry.age ?? '';
+      selectedCondition.value = entry.condition ?? 'Good';
+      selectedProposedFor.value = entry.proposedFor ?? 'Retain';
+      selectedOwnership.value = entry.ownership ?? 'Pvt';
+      addressController.text = entry.address ?? '';
+      landmarkController.text = entry.landmark ?? '';
+      concernPersonController.text = entry.concernPerson ?? '';
+      remarkController.text = entry.remark ?? '';
+      latitudeController.text = entry.latitude ?? '';
+      longitudeController.text = entry.longitude ?? '';
+      accuracyController.text = entry.accuracy ?? '';
+      selectedUnit.value = entry.unit ?? 'Meter'; // Restore unit
+      capturedPhotos.value = List.from(entry.photos);
+    }
+  }
+
+  void _resetFormForNext() {
+    // Keep Ward/Plot if needed? Usually yes for sequential add.
+    // Increment Tree No based on value
+    // Parse the numeric part from "T-123"
+    int nextNo = currentTreeNo.value + 1; // currentTreeNo is already tracked
+    currentTreeNo.value = nextNo; 
+    treeNoController.text = "T-$nextNo";
+    
+    treeNameController.clear();
+    scientificNameController.clear();
+    familyController.clear();
+    girthController.clear();
+    heightController.clear();
+    canopyController.clear();
+    ageController.clear();
+    // landmarkController.clear(); // Keep landmark?
+    // concernPersonController.clear(); // Keep?
+    remarkController.clear();
+    capturedPhotos.clear();
+    selectedCondition.value = 'Good';
+    selectedProposedFor.value = 'Retain';
+    
+    // Refresh GPS
+    _captureGPSLocation();
+  }
+
+  Future<void> submitAllTrees() async {
+    // Ensure current form is saved if valid
+    if (treeNameController.text.isNotEmpty) {
+      _saveCurrentTreeToLocal();
+    }
+
+    if (localTrees.isEmpty) {
+      Get.snackbar("Error", "No trees to submit");
       return;
     }
 
-    if (capturedPhotos.isEmpty) {
-      Get.snackbar("Error", "Please capture at least one tree photo");
-      return;
-    }
-
-    // Show confirmation dialog
     final confirmed = await Get.dialog<bool>(
       AlertDialog(
         title: Text("Confirm Submission"),
-        content: Text("Are you sure you want to submit this tree data?"),
+        content: Text("Submit ${localTrees.length} ${localTrees.length == 1 ? 'tree' : 'trees'}?"),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text("No"),
-          ),
-          ElevatedButton(
-            onPressed: () => Get.back(result: true),
-            child: Text("Yes"),
-          ),
+          TextButton(onPressed: () => Get.back(result: false), child: Text("No")),
+          ElevatedButton(onPressed: () => Get.back(result: true), child: Text("Yes")),
         ],
       ),
     );
@@ -196,45 +422,40 @@ class AddTreeController extends GetxController {
 
     isLoading.value = true;
 
-    // TODO: Implement API call to save tree data
-    await Future.delayed(Duration(seconds: 2));
+    final List<Map<String, dynamic>> treesData = localTrees.map((e) => e.toJson()).toList();
+    // Note: If photos need upload, handle here loop or Multipart
+    
+    final response = await _treesRepository.submitTrees(treesData);
 
     isLoading.value = false;
 
-    Get.snackbar(
-      "Success",
-      "Tree data submitted successfully!",
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
+    if (response.success) {
+      Get.snackbar("Success", "All trees submitted successfully!");
+      
+      try {
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().fetchProjects();
+        }
+      } catch (e) {
+        print("Error refreshing projects: $e");
+      }
+      
+      FocusManager.instance.primaryFocus?.unfocus();
+      await Future.delayed(Duration(milliseconds: 300));
 
-    // Increment tree number for next entry
-    currentTreeNo.value++;
-    _resetForm();
-  }
-
-  void _resetForm() {
-    treeNoController.text = currentTreeNo.value.toString();
-    treeNameController.clear();
-    scientificNameController.clear();
-    familyController.clear();
-    girthController.clear();
-    heightController.clear();
-    canopyController.clear();
-    ageController.clear();
-    landmarkController.clear();
-    concernPersonController.clear();
-    remarkController.clear();
-    capturedPhotos.clear();
-    selectedCondition.value = 'Good';
-    selectedProposedFor.value = 'Retain';
-    
-    // Keep GPS and address as they likely haven't changed
-    _captureGPSLocation();
+      if (Get.context != null) {
+        Navigator.of(Get.context!).pop(true);
+      } else {
+        Get.back(result: true);
+      }
+    } else {
+      Get.snackbar("Error", response.message ?? "Failed to submit trees");
+    }
   }
 
   @override
   void onClose() {
+    _debounce?.cancel();
     wardPlotNoController.dispose();
     treeNoController.dispose();
     treeNameController.dispose();

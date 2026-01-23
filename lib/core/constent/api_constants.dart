@@ -28,6 +28,16 @@ class ApiConstants {
     static const String contacts = "contacts";
     static const String notes = "notes";
     static const String privacyPolicy = "privacy-policy";
+    static const String getStates = "states";
+    static const String projectList = "project/list";
+
+    static const String createProject = "customer/create-project";
+    static const String updateProject = "customer/projects";
+
+    static const String treeList = "tree-list";
+    static const String treeMeasure = "tree/measure";
+    static const String saveTrees = "trees-add";
+    static const String treeInProject = "tree_in_project";
 
 
 

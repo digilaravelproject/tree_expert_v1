@@ -63,7 +63,21 @@ class HomeController extends GetxController {
 
   // Observable projects
   final RxList<ProjectListModel> projectsList = <ProjectListModel>[].obs;
+  final RxString selectedFilter = 'All'.obs; // All, Ongoing, Completed
   final RxBool isLoadingProjects = false.obs;
+
+  List<ProjectListModel> get filteredProjects {
+    if (selectedFilter.value == 'Completed') {
+      return projectsList.where((p) => p.limit != null && p.treesCount >= p.limit!).toList();
+    } else if (selectedFilter.value == 'Ongoing') {
+      return projectsList.where((p) => p.limit == null || p.treesCount < p.limit!).toList();
+    }
+    return projectsList;
+  }
+
+  void setFilter(String filter) {
+    selectedFilter.value = filter;
+  }
 
   @override
   void onInit() {
@@ -101,7 +115,7 @@ class HomeController extends GetxController {
     // 3. If Valid, Proceed
     await locationManager.getCurrentLocation();
     _fetchDashboardStats();
-    _fetchProjects();
+    fetchProjects();
   }
 
   void _showLocationServiceDialog() {
@@ -312,7 +326,7 @@ class HomeController extends GetxController {
   double get currentLongitude => locationManager.longitude.value;
 
   /// Fetch projects from API
-  Future<void> _fetchProjects() async {
+  Future<void> fetchProjects() async {
     isLoadingProjects.value = true;
     final response = await _projectsRepository.getProjectList();
     

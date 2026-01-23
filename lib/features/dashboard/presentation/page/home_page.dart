@@ -20,7 +20,10 @@ class HomePage extends GetWidget<HomeController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: controller.refreshProjects,
+        color: context.theme.primaryColor,
+        child: CustomScrollView(
         slivers: [
           SliverAppBar(
             pinned: true,
@@ -152,32 +155,37 @@ class HomePage extends GetWidget<HomeController> {
                 // Simple Search Bar
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: context.theme.cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: context.theme.dividerColor,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.search,
-                          color: context.theme.colorScheme.primary,
-                          size: 20,
+                  child: GestureDetector(
+                    onTap: () {
+                      Get.toNamed(AppRoutes.search, arguments: {'projects': controller.projectsList});
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: context.theme.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: context.theme.dividerColor,
                         ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "Search projects...",
-                            style: TextStyle(
-                              color: context.theme.hintColor,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.search,
+                            color: context.theme.colorScheme.primary,
+                            size: 20,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              "Search projects...",
+                              style: TextStyle(
+                                color: context.theme.hintColor,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -189,7 +197,7 @@ class HomePage extends GetWidget<HomeController> {
                     if (controller.isLoadingStats.value) {
                       // Show shimmer while loading
                       return SizedBox(
-                        height: 110,
+                        height: 125,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           padding: EdgeInsets.symmetric(horizontal: 16),
@@ -206,7 +214,7 @@ class HomePage extends GetWidget<HomeController> {
                     
                     // Show actual stats
                     return SizedBox(
-                      height: 110,
+                      height: 125,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         padding: EdgeInsets.symmetric(horizontal: 16),
@@ -270,7 +278,7 @@ class HomePage extends GetWidget<HomeController> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Obx(() => Text(
-                                  "${controller.projectsList.length}",
+                                  "${controller.filteredProjects.length}", // Filtered count
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -302,15 +310,24 @@ class HomePage extends GetWidget<HomeController> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
+                      child: Obx(() => Row(
                         children: [
-                          _buildFilterChip(context, "All", true),
+                          GestureDetector(
+                            onTap: () => controller.setFilter('All'),
+                            child: _buildFilterChip(context, "All", controller.selectedFilter.value == 'All'),
+                          ),
                           SizedBox(width: 10),
-                          _buildFilterChip(context, "Ongoing", false),
+                          GestureDetector(
+                            onTap: () => controller.setFilter('Ongoing'),
+                            child: _buildFilterChip(context, "Ongoing", controller.selectedFilter.value == 'Ongoing'),
+                          ),
                           SizedBox(width: 10),
-                          _buildFilterChip(context, "Completed", false),
+                          GestureDetector(
+                            onTap: () => controller.setFilter('Completed'),
+                            child: _buildFilterChip(context, "Completed", controller.selectedFilter.value == 'Completed'),
+                          ),
                         ],
-                      ),
+                      )),
                     ),
                   ],
                 ),
@@ -330,32 +347,35 @@ class HomePage extends GetWidget<HomeController> {
                         return ProjectCardShimmer();
                       },
                     );
-                  } else if (controller.projectsList.isEmpty) {
+                  } else if (controller.filteredProjects.isEmpty) {
                     // Show empty state
-                    return Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.folder_open,
-                            size: 60,
-                            color: Colors.grey.shade300,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            "No projects yet",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey.shade600,
+                    return Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.folder_open,
+                              size: 60,
+                              color: Colors.grey.shade300,
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 16),
+                            Text(
+                              "No projects found",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   } else {
                     // Show project list
                     return ListView.builder(
-                      itemCount: controller.projectsList.length,
+                      itemCount: controller.filteredProjects.length,
                       shrinkWrap: true,
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       physics: NeverScrollableScrollPhysics(),
@@ -363,7 +383,7 @@ class HomePage extends GetWidget<HomeController> {
                         return Padding(
                           padding: EdgeInsets.only(bottom: 12),
                           child: ApiProjectCard(
-                            project: controller.projectsList[index],
+                            project: controller.filteredProjects[index],
                           ),
                         );
                       },
@@ -376,6 +396,7 @@ class HomePage extends GetWidget<HomeController> {
             ),
           ),
         ],
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Container(
@@ -436,8 +457,8 @@ class HomePage extends GetWidget<HomeController> {
         required Color color,
       }) {
     return Container(
-      width: 120,
-      padding: EdgeInsets.all(14),
+      width: 140,
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -454,7 +475,7 @@ class HomePage extends GetWidget<HomeController> {
             color: color,
             size: 22,
           ),
-          Spacer(),
+          SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
@@ -521,6 +542,7 @@ class HomePage extends GetWidget<HomeController> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 40,
@@ -530,7 +552,7 @@ class HomePage extends GetWidget<HomeController> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            Spacer(),
+            SizedBox(height: 8),
             Container(
               width: 60,
               height: 24,
