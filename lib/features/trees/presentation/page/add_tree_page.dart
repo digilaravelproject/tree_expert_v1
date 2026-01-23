@@ -1,0 +1,770 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'dart:io';
+import '../controller/add_tree_controller.dart';
+
+class AddTreesPage extends GetWidget<AddTreeController> {
+  const AddTreesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: Text(
+          "Add Tree",
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // SECTION 1: Basic Information
+                  _buildSectionCard(
+                    title: "Basic Information",
+                    icon: Icons.info_outline,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: controller.wardPlotNoController,
+                              label: "Ward/Plot No",
+                              hint: "Enter ward/plot number",
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: controller.treeNoController,
+                              label: "Tree No",
+                              hint: "Auto",
+                              enabled: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // SECTION 2: Tree Details
+                  _buildSectionCard(
+                    title: "Tree Details",
+                    icon: Icons.park,
+                    children: [
+                      Autocomplete<String>(
+                        optionsBuilder: (TextEditingValue textEditingValue) {
+                          if (textEditingValue.text.isEmpty) {
+                            return const Iterable<String>.empty();
+                          }
+                          return controller.treeNameSuggestions.where((String option) {
+                            return option.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            );
+                          });
+                        },
+                        onSelected: (String selection) {
+                          controller.treeNameController.text = selection;
+                          controller.onTreeNameChanged(selection);
+                        },
+                        fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                          controller.treeNameController.text = textEditingController.text;
+                          return _buildTextField(
+                            controller: textEditingController,
+                            label: "Tree Name",
+                            hint: "Search tree name",
+                            focusNode: focusNode,
+                            onChanged: controller.onTreeNameChanged,
+                          );
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      _buildTextField(
+                        controller: controller.scientificNameController,
+                        label: "Scientific Name",
+                        hint: "Auto-filled",
+                        enabled: false,
+                      ),
+                      SizedBox(height: 12),
+                      _buildTextField(
+                        controller: controller.familyController,
+                        label: "Family",
+                        hint: "Auto-filled",
+                        enabled: false,
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // SECTION 3: Measurements
+                  _buildSectionCard(
+                    title: "Measurements",
+                    icon: Icons.straighten,
+                    children: [
+                      // Unit Toggle
+                      Obx(() => Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text("Unit: ", style: TextStyle(fontSize: 14)),
+                          ChoiceChip(
+                            label: Text("Meter"),
+                            selected: controller.selectedUnit.value == 'Meter',
+                            onSelected: (_) => controller.toggleUnit(),
+                          ),
+                          SizedBox(width: 8),
+                          ChoiceChip(
+                            label: Text("Feet"),
+                            selected: controller.selectedUnit.value == 'Feet',
+                            onSelected: (_) => controller.toggleUnit(),
+                          ),
+                        ],
+                      )),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: controller.girthController,
+                              label: "Girth",
+                              hint: "0.0",
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: controller.heightController,
+                              label: "Height",
+                              hint: "0.0",
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      _buildTextField(
+                        controller: controller.canopyController,
+                        label: "Canopy",
+                        hint: "0.0",
+                        keyboardType: TextInputType.number,
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // SECTION 4: Tree Status
+                  _buildSectionCard(
+                    title: "Tree Status",
+                    icon: Icons.health_and_safety,
+                    children: [
+                      _buildTextField(
+                        controller: controller.ageController,
+                        label: "Age (years)",
+                        hint: "Enter age",
+                        keyboardType: TextInputType.number,
+                      ),
+                      SizedBox(height: 12),
+                      _buildDropdown(
+                        label: "Condition",
+                        value: controller.selectedCondition,
+                        items: controller.conditions,
+                      ),
+                      SizedBox(height: 12),
+                      _buildDropdown(
+                        label: "Proposed For",
+                        value: controller.selectedProposedFor,
+                        items: controller.proposedForOptions,
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // SECTION 5: Location Details
+                  _buildSectionCard(
+                    title: "Location Details",
+                    icon: Icons.location_on,
+                    children: [
+                      _buildTextField(
+                        controller: controller.addressController,
+                        label: "Address",
+                        hint: "Auto-captured from GPS",
+                        maxLines: 2,
+                        enabled: false,
+                      ),
+                      SizedBox(height: 12),
+                      _buildTextField(
+                        controller: controller.landmarkController,
+                        label: "Landmark",
+                        hint: "Enter nearby landmark",
+                      ),
+                      SizedBox(height: 12),
+                      _buildDropdown(
+                        label: "Ownership",
+                        value: controller.selectedOwnership,
+                        items: controller.ownershipOptions,
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // SECTION 6: Additional Information
+                  _buildSectionCard(
+                    title: "Additional Information",
+                    icon: Icons.note,
+                    children: [
+                      _buildTextField(
+                        controller: controller.concernPersonController,
+                        label: "Concern Person Name",
+                        hint: "Enter name",
+                      ),
+                      SizedBox(height: 12),
+                      _buildTextField(
+                        controller: controller.remarkController,
+                        label: "Remark",
+                        hint: "Any additional notes",
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // SECTION 7: GPS & Photo
+                  _buildSectionCard(
+                    title: "GPS & Photo",
+                    icon: Icons.camera_alt,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: controller.latitudeController,
+                              label: "Latitude",
+                              hint: "Auto",
+                              enabled: false,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: controller.longitudeController,
+                              label: "Longitude",
+                              hint: "Auto",
+                              enabled: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      _buildTextField(
+                        controller: controller.accuracyController,
+                        label: "Accuracy",
+                        hint: "Auto",
+                        enabled: false,
+                      ),
+                      SizedBox(height: 16),
+                      
+                      // Photo Capture - Grid with Photos + Add Button
+                      Obx(() {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (controller.capturedPhotos.isNotEmpty)
+                              Text(
+                                "Captured Photos (${controller.capturedPhotos.length})",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            if (controller.capturedPhotos.isNotEmpty)
+                              SizedBox(height: 12),
+                            
+                            // Combined Grid: Photos + Add Button
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                                childAspectRatio: 1,
+                              ),
+                              itemCount: controller.capturedPhotos.length + 1, // +1 for add button
+                              itemBuilder: (context, index) {
+                                // Add button as last item
+                                if (index == controller.capturedPhotos.length) {
+                                  return GestureDetector(
+                                    onTap: controller.capturePhoto,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: context.theme.primaryColor.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: context.theme.primaryColor,
+                                          width: 2,
+                                          style: BorderStyle.solid,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.add_a_photo,
+                                            color: context.theme.primaryColor,
+                                            size: 32,
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            "Add Photo",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: context.theme.primaryColor,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                
+                                // Photo item
+                                return GestureDetector(
+                                  onTap: () {
+                                    // Show zoomed image dialog with gallery view
+                                    _showZoomedImage(context, index);
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          File(controller.capturedPhotos[index]),
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      // Delete button
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: GestureDetector(
+                                          onTap: () => controller.removePhoto(index),
+                                          child: Container(
+                                            padding: EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+
+                  SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom Submit Button
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Obx(() => ElevatedButton(
+                onPressed: controller.isLoading.value ? null : controller.submitTree,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: controller.isLoading.value
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            "Submit Tree Data",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+              )),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Get.theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 20, color: Get.theme.primaryColor),
+              ),
+              SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    bool enabled = true,
+    FocusNode? focusNode,
+    Function(String)? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          enabled: enabled,
+          focusNode: focusNode,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade200,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Get.theme.primaryColor, width: 2),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required RxString value,
+    required List<String> items,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        SizedBox(height: 6),
+        Obx(() => DropdownButtonFormField<String>(
+          value: value.value,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Get.theme.primaryColor, width: 2),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(item),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              value.value = newValue;
+            }
+          },
+        )),
+      ],
+    );
+  }
+
+  void _showZoomedImage(BuildContext context, int initialIndex) {
+    final RxInt currentIndex = initialIndex.obs;
+    final RxBool showControls = true.obs; // Toggle for immersive mode
+    final PageController pageController = PageController(initialPage: initialIndex);
+
+    Get.dialog(
+      Material(
+        color: Colors.black,
+        child: Stack(
+          children: [
+            // 1. Main Image Viewer (PageView)
+            Positioned.fill(
+              child: PageView.builder(
+                controller: pageController,
+                itemCount: controller.capturedPhotos.length,
+                onPageChanged: (index) => currentIndex.value = index,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => showControls.value = !showControls.value, // Toggle controls
+                    child: Container(
+                      padding: EdgeInsets.only(bottom: 100), // Space for bottom thumbnails
+                      child: InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: Center(
+                          child: Image.file(
+                            File(controller.capturedPhotos[index]),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // 2. Top Bar (Gradient + Close + Counter)
+            Obx(() => AnimatedPositioned(
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              top: showControls.value ? 0 : -100, // Hide by moving up
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(16, 40, 16, 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Close Button
+                    GestureDetector(
+                      onTap: () => Get.back(),
+                      child: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.close, color: Colors.white, size: 24),
+                      ),
+                    ),
+                    
+                    // Counter Pill
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        "${currentIndex.value + 1} / ${controller.capturedPhotos.length}",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )),
+
+            // 3. Bottom Thumbnail Strip (Gradient + List)
+            Obx(() => AnimatedPositioned(
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              bottom: showControls.value ? 0 : -120, // Hide by moving down
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  itemCount: controller.capturedPhotos.length,
+                  itemBuilder: (context, index) {
+                    return Obx(() { // Listen to currentIndex changes for selection style
+                      final isSelected = currentIndex.value == index;
+                      return GestureDetector(
+                        onTap: () {
+                          currentIndex.value = index;
+                          pageController.animateToPage(
+                            index,
+                            duration: Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 200),
+                          margin: EdgeInsets.only(right: 12),
+                          width: isSelected ? 60 : 50, // Active item is larger
+                          height: isSelected ? 60 : 50,
+                          decoration: BoxDecoration(
+                            border: isSelected
+                                ? Border.all(color: context.theme.primaryColor, width: 2)
+                                : Border.all(color: Colors.white30, width: 1),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: isSelected
+                                ? [BoxShadow(color: context.theme.primaryColor.withOpacity(0.5), blurRadius: 8)]
+                                : [],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.file(
+                              File(controller.capturedPhotos[index]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ),
+            )),
+          ],
+        ),
+      ),
+      barrierColor: Colors.black,
+      useSafeArea: false,
+    );
+  }
+}
