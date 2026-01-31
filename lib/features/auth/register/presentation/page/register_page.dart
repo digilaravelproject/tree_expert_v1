@@ -19,6 +19,7 @@ class RegisterPage extends GetWidget<RegisterController> {
       enableDoubleTapExit: true,
       body: Stack(
         children: [
+          // Background Image with Overlay
           Column(
             mainAxisSize: MainAxisSize.max,
             children: [
@@ -31,6 +32,7 @@ class RegisterPage extends GetWidget<RegisterController> {
               SizedBox(height: Get.height * 0.55),
             ],
           ),
+          
           Form(
             key: controller.formKey,
             child: Column(
@@ -41,111 +43,137 @@ class RegisterPage extends GetWidget<RegisterController> {
                   decoration: AppDecorations.bottomSheetDecoration(context),
                   child: Padding(
                     padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Handle bar
-                        Center(
-                          child: Container(
-                            width: 50,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Welcome Text
-                        Text(
-                          "Become a Tree Protector 🌍",
-                          style: context.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Register with your email Ids to contribute to tree conservation and environmental surveys.",
-                        ),
-
-                        Column(
-                          spacing: 12,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppInputTextField(
-                              label: "Full Name",
-                              textInputType: TextInputType.name,
-                              validator: FormValidator.name,
-                              controller: controller.nameCtrl,
-                              iconData: CupertinoIcons.profile_circled,
-                            ),
-
-                            Row(
-                              spacing: 12,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: AppInputTextField(
-                                    label: "Email Id",
-                                    textInputType: TextInputType.emailAddress,
-                                    validator: FormValidator.email,
-                                    controller: controller.emailCtrl,
-                                    iconData: CupertinoIcons.mail,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: CustomButton(
-                                    title: "Verify ",
-                                    onPressed: () {},
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            Obx(
-                              () => AppInputTextField(
-                                label: "Password",
-                                isObscure: controller.isPasswordValue.value,
-                                validator: FormValidator.password,
-                                controller: controller.passwordCtrl,
-                                endIcon: controller.isPasswordValue.value
-                                    ? Icons.remove_red_eye_rounded
-                                    : Icons.visibility_off,
-                                iconData: CupertinoIcons.lock_fill,
-                                onEndIconTap: controller.isPasswordValue.toggle,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Handle bar
+                          Center(
+                            child: Container(
+                              width: 50,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 12),
 
-                            Obx(
-                              () => AppInputTextField(
-                                label: "Confirm Password",
-                                isObscure: controller.isCnfPasswordValue.value,
-                                validator: (value) =>
-                                    FormValidator.confirmPassword(
-                                      value,
-                                      controller.passwordCtrl.text,
+                          // Welcome Text
+                          Text(
+                            "Become a Tree Protector 🌍",
+                            style: context.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Complete your profile to contribute to tree conservation.",
+                          ),
+                          
+                          const SizedBox(height: 20),
+
+                          // Profile Image Picker
+                          Center(
+                            child: GestureDetector(
+                              onTap: controller.pickImage,
+                              child: Stack(
+                                children: [
+                                  Obx(() {
+                                    if (controller.profileImage.value != null) {
+                                      return CircleAvatar(
+                                        radius: 50,
+                                        backgroundImage: FileImage(controller.profileImage.value!),
+                                      );
+                                    }
+                                    return CircleAvatar(
+                                      radius: 50,
+                                      backgroundColor: Colors.grey.shade200,
+                                      child: Icon(Icons.person, size: 50, color: Colors.grey),
+                                    );
+                                  }),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: CircleAvatar(
+                                      radius: 15,
+                                      backgroundColor: context.theme.primaryColor,
+                                      child: Icon(Icons.camera_alt, size: 15, color: Colors.white),
                                     ),
-                                controller: controller.confirmPasswordCtrl,
-                                endIcon: controller.isCnfPasswordValue.value
-                                    ? Icons.remove_red_eye_rounded
-                                    : Icons.visibility_off,
-                                iconData: CupertinoIcons.lock,
-                                onEndIconTap:
-                                    controller.isCnfPasswordValue.toggle,
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ).marginSymmetric(vertical: 24),
+                          ),
 
-                        /// 🔹 SUBMIT BUTTON
-                        CustomButton(
-                          onPressed: controller.onRegister,
-                          title: "Register",
-                        ),
-                        SizedBox(height: context.mediaQueryPadding.bottom),
-                      ],
+                          Column(
+                            spacing: 12,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppInputTextField(
+                                label: "Full Name",
+                                textInputType: TextInputType.name,
+                                validator: FormValidator.name,
+                                controller: controller.nameCtrl,
+                                iconData: CupertinoIcons.profile_circled,
+                              ),
+
+                              AppInputTextField(
+                                label: "Email Id",
+                                textInputType: TextInputType.emailAddress,
+                                validator: FormValidator.email,
+                                controller: controller.emailCtrl,
+                                iconData: CupertinoIcons.mail,
+                              ),
+                              
+                              // Gender Dropdown
+                              DropdownButtonFormField<String>(
+                                value: controller.selectedGender.value,
+                                decoration: InputDecoration(
+                                   labelText: "Gender",
+                                   prefixIcon: Icon(Icons.person_outline),
+                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                items: ["Male", "Female", "Other"]
+                                    .map((label) => DropdownMenuItem(
+                                          child: Text(label),
+                                          value: label,
+                                        ))
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) controller.selectedGender.value = value;
+                                },
+                              ),
+
+                               AppInputTextField(
+                                label: "Address",
+                                textInputType: TextInputType.streetAddress,
+                                validator: (val) => val!.isEmpty ? "Enter address" : null,
+                                controller: controller.addressCtrl,
+                                iconData: CupertinoIcons.location,
+                              ),
+
+                               AppInputTextField(
+                                label: "Aadhaar Number",
+                                textInputType: TextInputType.number,
+                                maxLength: 12,
+                                validator: (val) => (val == null || val.length != 12) ? "Enter valid 12-digit Aadhaar" : null,
+                                controller: controller.aadhaarCtrl,
+                                iconData: CupertinoIcons.doc_text,
+                              ),
+                            ],
+                          ).marginSymmetric(vertical: 24),
+
+                          /// 🔹 SUBMIT BUTTON
+                          Obx(() => CustomButton(
+                            onPressed: controller.onRegister,
+                            title: "Complete Profile",
+                            isLoading: controller.isLoading.value,
+                          )),
+                          SizedBox(height: context.mediaQueryPadding.bottom),
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -11,493 +11,543 @@ class AddTreesPage extends GetWidget<AddTreeController> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: Obx(() => Text(
-          "Add Tree (${controller.currentTreeIndex.value + 1})",
-          style: TextStyle(fontWeight: FontWeight.w800),
-        )),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // SECTION 1: Basic Information
-                  _buildSectionCard(
-                    title: "Basic Information",
-                    icon: Icons.info_outline,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: controller.wardPlotNoController,
-                              label: "Ward/Plot No",
-                              hint: "Enter ward/plot number",
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          title: Obx(() => Text(
+                "Add Tree (${controller.currentTreeIndex.value + 1})",
+                style: TextStyle(fontWeight: FontWeight.w800),
+              )),
+          centerTitle: true,
+          elevation: 0,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // SECTION 1: Basic Information
+                    _buildSectionCard(
+                      title: "Basic Information",
+                      icon: Icons.info_outline,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                textController: controller.wardPlotNoController,
+                                label: "Ward/Plot No",
+                                reqKey: "ward_plot_no",
+                                hint: "Enter ward/plot number",
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: controller.treeNoController,
-                              label: "Tree No",
-                              hint: "Auto",
-                              enabled: false,
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                textController: controller.treeNoController,
+                                label: "Tree No",
+                                reqKey: "tree_no",
+                                hint: "Auto",
+                                enabled: false,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                          ],
+                        ),
+                      ],
+                    ),
 
-                  SizedBox(height: 16),
+                    SizedBox(height: 16),
 
-                  // SECTION 2: Tree Details
-                  _buildSectionCard(
-                    title: "Tree Details",
-                    icon: Icons.park,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          _showTreeSelectionSheet(context);
-                        },
-                        child: AbsorbPointer(
-                          child: _buildTextField(
-                            controller: controller.treeNameController,
-                            label: "Tree Name",
-                            hint: "Select Tree",
-                            // suffixIcon: Icon(Icons.arrow_drop_down), // Optional UI hint
+                    // SECTION 2: Tree Details
+                    _buildSectionCard(
+                      title: "Tree Details",
+                      icon: Icons.park,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            _showTreeSelectionSheet(context);
+                          },
+                          child: AbsorbPointer(
+                            child: _buildTextField(
+                              textController: controller.treeNameController,
+                              label: "Tree Name",
+                              reqKey: "tree_name",
+                              hint: "Select Tree",
+                              // suffixIcon: Icon(Icons.arrow_drop_down), // Optional UI hint
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(height: 12),
-                      _buildTextField(
-                        controller: controller.scientificNameController,
-                        label: "Scientific Name",
-                        hint: "Auto-filled",
-                        enabled: false,
-                      ),
-                      SizedBox(height: 12),
-                      _buildTextField(
-                        controller: controller.familyController,
-                        label: "Family",
-                        hint: "Auto-filled",
-                        enabled: false,
-                      ),
-                    ],
-                  ),
+                        SizedBox(height: 12),
+                        _buildTextField(
+                          textController: controller.scientificNameController,
+                          label: "Scientific Name",
+                          hint: "Auto-filled",
+                          enabled: false,
+                        ),
+                        SizedBox(height: 12),
+                        _buildTextField(
+                          textController: controller.familyController,
+                          label: "Family",
+                          hint: "Auto-filled",
+                          enabled: false,
+                        ),
+                      ],
+                    ),
 
-                  SizedBox(height: 16),
+                    SizedBox(height: 16),
 
-                  // SECTION 3: Measurements
-                  _buildSectionCard(
-                    title: "Measurements",
-                    icon: Icons.straighten,
-                    children: [
-                      // Unit Toggle
-                      Obx(() => Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text("Unit: ", style: TextStyle(fontSize: 14)),
-                          ChoiceChip(
-                            label: Text("Meter"),
-                            selected: controller.selectedUnit.value == 'Meter',
-                            onSelected: (_) => controller.toggleUnit(),
-                          ),
-                          SizedBox(width: 8),
-                          ChoiceChip(
-                            label: Text("Feet"),
-                            selected: controller.selectedUnit.value == 'Feet',
-                            onSelected: (_) => controller.toggleUnit(),
-                          ),
-                        ],
-                      )),
-                      SizedBox(height: 12),
-                      SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: controller.girthController,
-                              label: "Girth (cm)",
-                              hint: "0.0",
-                              keyboardType: TextInputType.number,
+                    // SECTION 3: Measurements
+                    _buildSectionCard(
+                      title: "Measurements",
+                      icon: Icons.straighten,
+                      children: [
+                        // Unit Toggle
+                        Obx(() => Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text("Unit: ", style: TextStyle(fontSize: 14)),
+                                ChoiceChip(
+                                  label: Text("Meter"),
+                                  selected:
+                                      controller.selectedUnit.value == 'Meter',
+                                  onSelected: (_) => controller.toggleUnit(),
+                                ),
+                                SizedBox(width: 8),
+                                ChoiceChip(
+                                  label: Text("Feet"),
+                                  selected:
+                                      controller.selectedUnit.value == 'Feet',
+                                  onSelected: (_) => controller.toggleUnit(),
+                                ),
+                              ],
+                            )),
+                        SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                textController: controller.girthController,
+                                label: "Girth (cm)",
+                                reqKey: "girth",
+                                hint: "0.0",
+                                keyboardType: TextInputType.number,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Obx(() => _buildTextField(
-                              controller: controller.heightController,
-                              label: "Height (${controller.selectedUnit.value == 'Meter' ? 'm' : 'ft'})",
-                              hint: controller.isCalculating.value ? "Calculating..." : "0.0",
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Obx(() => _buildTextField(
+                                    textController: controller.heightController,
+                                    label:
+                                        "Height (${controller.selectedUnit.value == 'Meter' ? 'm' : 'ft'})",
+                                    reqKey: "height",
+                                    hint: controller.isCalculating.value
+                                        ? "Calculating..."
+                                        : "0.0",
+                                    keyboardType: TextInputType.number,
+                                    enabled: !controller.isCalculating.value,
+                                  )),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        Obx(() => _buildTextField(
+                              textController: controller.canopyController,
+                              label:
+                                  "Canopy (${controller.selectedUnit.value == 'Meter' ? 'm' : 'ft'})",
+                              reqKey: "canopy",
+                              hint: controller.isCalculating.value
+                                  ? "Calculating..."
+                                  : "0.0",
                               keyboardType: TextInputType.number,
                               enabled: !controller.isCalculating.value,
                             )),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      Obx(() => _buildTextField(
-                        controller: controller.canopyController,
-                        label: "Canopy (${controller.selectedUnit.value == 'Meter' ? 'm' : 'ft'})",
-                        hint: controller.isCalculating.value ? "Calculating..." : "0.0",
-                        keyboardType: TextInputType.number,
-                        enabled: !controller.isCalculating.value,
-                      )),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  SizedBox(height: 16),
+                    SizedBox(height: 16),
 
-                  // SECTION 4: Tree Status
-                  _buildSectionCard(
-                    title: "Tree Status",
-                    icon: Icons.health_and_safety,
-                    children: [
-                      _buildTextField(
-                        controller: controller.ageController,
-                        label: "Age (years)",
-                        hint: "Enter age",
-                        keyboardType: TextInputType.number,
-                      ),
-                      SizedBox(height: 12),
-                      _buildDropdown(
-                        label: "Condition",
-                        value: controller.selectedCondition,
-                        items: controller.conditions,
-                      ),
-                      SizedBox(height: 12),
-                      _buildDropdown(
-                        label: "Proposed For",
-                        value: controller.selectedProposedFor,
-                        items: controller.proposedForOptions,
-                      ),
-                    ],
-                  ),
+                    // SECTION 4: Tree Status
+                    _buildSectionCard(
+                      title: "Tree Status",
+                      icon: Icons.health_and_safety,
+                      children: [
+                        _buildTextField(
+                          textController: controller.ageController,
+                          label: "Age (years)",
+                          reqKey: "age",
+                          hint: "Enter age",
+                          keyboardType: TextInputType.number,
+                        ),
+                        SizedBox(height: 12),
+                        _buildDropdown(
+                          label: "Condition",
+                          reqKey: "condition",
+                          value: controller.selectedCondition,
+                          items: controller.conditions,
+                        ),
+                        SizedBox(height: 12),
+                        _buildDropdown(
+                          label: "Proposed For",
+                          value: controller.selectedProposedFor,
+                          items: controller.proposedForOptions,
+                        ),
+                      ],
+                    ),
 
-                  SizedBox(height: 16),
+                    SizedBox(height: 16),
 
-                  // SECTION 5: Location Details
-                  _buildSectionCard(
-                    title: "Location Details",
-                    icon: Icons.location_on,
-                    children: [
-                      _buildTextField(
-                        controller: controller.addressController,
-                        label: "Address",
-                        hint: "Auto-captured from GPS",
-                        maxLines: 2,
-                        enabled: false,
-                      ),
-                      SizedBox(height: 12),
-                      _buildTextField(
-                        controller: controller.landmarkController,
-                        label: "Landmark",
-                        hint: "Enter nearby landmark",
-                      ),
-                      SizedBox(height: 12),
-                      _buildDropdown(
-                        label: "Ownership",
-                        value: controller.selectedOwnership,
-                        items: controller.ownershipOptions,
-                      ),
-                    ],
-                  ),
+                    // SECTION 5: Location Details
+                    _buildSectionCard(
+                      title: "Location Details",
+                      icon: Icons.location_on,
+                      children: [
+                        _buildTextField(
+                          textController: controller.addressController,
+                          label: "Address",
+                          reqKey: "address",
+                          hint: "Auto-captured from GPS",
+                          maxLines: 2,
+                          enabled: false,
+                        ),
+                        SizedBox(height: 12),
+                        _buildTextField(
+                          textController: controller.landmarkController,
+                          label: "Landmark",
+                          reqKey: "landmark",
+                          hint: "Enter nearby landmark",
+                        ),
+                        SizedBox(height: 12),
+                        _buildDropdown(
+                          label: "Ownership",
+                          reqKey: "ownership",
+                          value: controller.selectedOwnership,
+                          items: controller.ownershipOptions,
+                        ),
+                      ],
+                    ),
 
-                  SizedBox(height: 16),
+                    SizedBox(height: 16),
 
-                  // SECTION 6: Additional Information
-                  _buildSectionCard(
-                    title: "Additional Information",
-                    icon: Icons.note,
-                    children: [
-                      _buildTextField(
-                        controller: controller.concernPersonController,
-                        label: "Concern Person Name",
-                        hint: "Enter name",
-                      ),
-                      SizedBox(height: 12),
-                      _buildTextField(
-                        controller: controller.remarkController,
-                        label: "Remark",
-                        hint: "Any additional notes",
-                        maxLines: 3,
-                      ),
-                    ],
-                  ),
+                    // SECTION 6: Additional Information
+                    _buildSectionCard(
+                      title: "Additional Information",
+                      icon: Icons.note,
+                      children: [
+                        _buildTextField(
+                          textController: controller.concernPersonController,
+                          label: "Concern Person Name",
+                          hint: "Enter name",
+                        ),
+                        SizedBox(height: 12),
+                        _buildTextField(
+                          textController: controller.remarkController,
+                          label: "Remark",
+                          hint: "Any additional notes",
+                          maxLines: 3,
+                        ),
+                      ],
+                    ),
 
-                  SizedBox(height: 16),
+                    SizedBox(height: 16),
 
-                  // SECTION 7: GPS & Photo
-                  _buildSectionCard(
-                    title: "GPS & Photo",
-                    icon: Icons.camera_alt,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: controller.latitudeController,
-                              label: "Latitude",
-                              hint: "Auto",
-                              enabled: false,
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              controller: controller.longitudeController,
-                              label: "Longitude",
-                              hint: "Auto",
-                              enabled: false,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      _buildTextField(
-                        controller: controller.accuracyController,
-                        label: "Accuracy",
-                        hint: "Auto",
-                        enabled: false,
-                      ),
-                      SizedBox(height: 16),
-                      
-                      // Photo Capture - Grid with Photos + Add Button
-                      Obx(() {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    // SECTION 7: GPS & Photo
+                    _buildSectionCard(
+                      title: "GPS & Photo",
+                      icon: Icons.camera_alt,
+                      children: [
+                        Row(
                           children: [
-                            if (controller.capturedPhotos.isNotEmpty)
-                              Text(
-                                "Captured Photos (${controller.capturedPhotos.length})",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
+                            Expanded(
+                              child: _buildTextField(
+                                textController: controller.latitudeController,
+                                label: "Latitude",
+                                hint: "Auto",
+                                enabled: false,
                               ),
-                            if (controller.capturedPhotos.isNotEmpty)
-                              SizedBox(height: 12),
-                            
-                            // Combined Grid: Photos + Add Button
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 1,
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                textController: controller.longitudeController,
+                                label: "Longitude",
+                                hint: "Auto",
+                                enabled: false,
                               ),
-                              itemCount: controller.capturedPhotos.length + 1, // +1 for add button
-                              itemBuilder: (context, index) {
-                                // Add button as last item
-                                if (index == controller.capturedPhotos.length) {
-                                  return GestureDetector(
-                                    onTap: controller.capturePhoto,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: context.theme.primaryColor.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: context.theme.primaryColor,
-                                          width: 2,
-                                          style: BorderStyle.solid,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.add_a_photo,
-                                            color: context.theme.primaryColor,
-                                            size: 32,
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            "Add Photo",
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: context.theme.primaryColor,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }
-                                
-                                // Photo item
-                                return GestureDetector(
-                                  onTap: () {
-                                    // Show zoomed image dialog with gallery view
-                                    _showZoomedImage(context, index);
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          File(controller.capturedPhotos[index]),
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      // Delete button
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: GestureDetector(
-                                          onTap: () => controller.removePhoto(index),
-                                          child: Container(
-                                            padding: EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
                             ),
                           ],
-                        );
-                      }),
-                    ],
-                  ),
+                        ),
+                        SizedBox(height: 12),
+                        _buildTextField(
+                          textController: controller.accuracyController,
+                          label: "Accuracy",
+                          hint: "Auto",
+                          enabled: false,
+                        ),
+                        SizedBox(height: 16),
 
-                  SizedBox(height: 100),
-                ],
+                        // Photo Capture - Grid with Photos + Add Button
+                        Obx(() {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    "Captured Photos ${controller.capturedPhotos.isNotEmpty ? '(${controller.capturedPhotos.length})' : ''}",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  if (controller.fieldRequirements['tree_images'] == true)
+                                    Text(" *",
+                                        style: TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              if (controller.capturedPhotos.isNotEmpty)
+                                SizedBox(height: 12),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                  childAspectRatio: 1,
+                                ),
+                                itemCount:
+                                    controller.capturedPhotos.length + 1,
+                                itemBuilder: (context, index) {
+                                  // Add button as last item
+                                  if (index == controller.capturedPhotos.length) {
+                                    return GestureDetector(
+                                      onTap: controller.capturePhoto,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: context.theme.primaryColor
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: context.theme.primaryColor,
+                                            width: 2,
+                                            style: BorderStyle.solid,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_a_photo,
+                                              color: context.theme.primaryColor,
+                                              size: 32,
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              "Add Photo",
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: context.theme.primaryColor,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  // Photo item
+                                  return GestureDetector(
+                                    onTap: () => _showZoomedImage(context, index),
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Image.file(
+                                            File(controller.capturedPhotos[index]),
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: GestureDetector(
+                                            onTap: () => controller
+                                                .removePhoto(index),
+                                            child: Container(
+                                              padding: EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
+
+                    SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Bottom Submit Button
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Obx(() => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Submit Button (Always Visible)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: ElevatedButton(
-                      onPressed: controller.isLoading.value ? null : controller.submitAllTrees,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        minimumSize: Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: controller.isLoading.value
-                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              controller.localTrees.isEmpty 
-                                  ? "Submit" 
-                                  : "Submit All (${controller.localTrees.length + 1})", 
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-                            ),
-                    ),
-                  ),
-                  
-                  // Navigation Row
-                  Row(
-                    children: [
-                      // Previous Button
-                      if (controller.currentTreeIndex.value > 0)
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: controller.isLoading.value ? null : controller.onPrevious,
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              side: BorderSide(color: Colors.grey.shade400),
-                            ),
-                            child: Text("Previous", style: TextStyle(color: Colors.black87)),
-                          ),
-                        ),
-                      
-                      if (controller.currentTreeIndex.value > 0)
-                        SizedBox(width: 12),
-                        
-                      // Continue Button
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: controller.isLoading.value ? null : controller.onContinue,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text("Continue (Next Tree)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
+            // Bottom Submit Button
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
                   ),
                 ],
-              )),
+              ),
+              child: SafeArea(
+                child: Obx(() => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Submit Button (Always Visible)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ElevatedButton(
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : controller.submitAllTrees,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade700,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              minimumSize: Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: controller.isLoading.value
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 2))
+                                : Text(
+                                    controller.localTrees.isEmpty
+                                        ? "Submit"
+                                        : "Submit All (${controller.localTrees.length + 1})",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ),
+
+                        // Navigation Row
+                        Row(
+                          children: [
+                            // Previous Button
+                            if (controller.currentTreeIndex.value > 0)
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: controller.isLoading.value
+                                      ? null
+                                      : controller.onPrevious,
+                                  style: OutlinedButton.styleFrom(
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    side: BorderSide(
+                                        color: Colors.grey.shade400),
+                                  ),
+                                  child: Text("Previous",
+                                      style:
+                                          TextStyle(color: Colors.black87)),
+                                ),
+                              ),
+
+                            if (controller.currentTreeIndex.value > 0)
+                              SizedBox(width: 12),
+
+                            // Continue Button
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: controller.isLoading.value
+                                    ? null
+                                    : controller.onContinue,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text("Continue (Next Tree)",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
+    );
   }
-  
+
   Future<bool> _onWillPop() async {
-    // If not dirty or no trees, maybe just pop?
-    // User requirement: "submit pe tb back hoga" -> means if I press back, I discard changes.
-    // So always ask validation if not submitted.
     return await Get.dialog<bool>(
-      AlertDialog(
-        title: Text("Discard Changes?"),
-        content: Text("Are you sure you want to discard your changes and go back?"),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false), // Stay
-            child: Text("No"),
+          AlertDialog(
+            title: Text("Discard Changes?"),
+            content: Text(
+                "Are you sure you want to discard your changes and go back?"),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(result: false), // Stay
+                child: Text("No"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red, foregroundColor: Colors.white),
+                onPressed: () => Get.back(result: true), // Pop
+                child: Text("Yes, Discard"),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () => Get.back(result: true), // Pop
-            child: Text("Yes, Discard"),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   Widget _buildSectionCard({
@@ -550,9 +600,10 @@ class AddTreesPage extends GetWidget<AddTreeController> {
   }
 
   Widget _buildTextField({
-    required TextEditingController controller,
+    required TextEditingController textController,
     required String label,
     required String hint,
+    String? reqKey,
     TextInputType? keyboardType,
     int maxLines = 1,
     bool enabled = true,
@@ -562,17 +613,16 @@ class AddTreesPage extends GetWidget<AddTreeController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
-          ),
-        ),
+        if (reqKey != null)
+          Obx(() {
+            bool isRequired = controller.fieldRequirements[reqKey] == true;
+            return _buildRichLabel(label, isRequired);
+          })
+        else
+          _buildRichLabel(label, false),
         SizedBox(height: 6),
         TextField(
-          controller: controller,
+          controller: textController,
           keyboardType: keyboardType,
           maxLines: maxLines,
           enabled: enabled,
@@ -605,54 +655,74 @@ class AddTreesPage extends GetWidget<AddTreeController> {
     );
   }
 
+  Widget _buildRichLabel(String label, bool isRequired) {
+    return RichText(
+      text: TextSpan(
+          text: label,
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+              fontFamily: 'Inter'),
+          children: [
+            if (isRequired)
+              TextSpan(
+                  text: " *",
+                  style: TextStyle(color: Colors.red, fontSize: 13)),
+          ]),
+    );
+  }
+
   Widget _buildDropdown({
     required String label,
     required RxString value,
     required List<String> items,
+    String? reqKey,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
-          ),
-        ),
+        if (reqKey != null)
+          Obx(() {
+            bool isRequired = controller.fieldRequirements[reqKey] == true;
+            return _buildRichLabel(label, isRequired);
+          })
+        else
+          _buildRichLabel(label, false),
         SizedBox(height: 6),
         Obx(() => DropdownButtonFormField<String>(
-          value: value.value,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Get.theme.primaryColor, width: 2),
-            ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              value.value = newValue;
-            }
-          },
-        )),
+              value: value.value,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      BorderSide(color: Get.theme.primaryColor, width: 2),
+                ),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              items: items.map((String item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  value.value = newValue;
+                }
+              },
+            )),
       ],
     );
   }
@@ -660,7 +730,8 @@ class AddTreesPage extends GetWidget<AddTreeController> {
   void _showZoomedImage(BuildContext context, int initialIndex) {
     final RxInt currentIndex = initialIndex.obs;
     final RxBool showControls = true.obs; // Toggle for immersive mode
-    final PageController pageController = PageController(initialPage: initialIndex);
+    final PageController pageController =
+        PageController(initialPage: initialIndex);
 
     Get.dialog(
       Material(
@@ -675,9 +746,11 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                 onPageChanged: (index) => currentIndex.value = index,
                 itemBuilder: (context, index) {
                   return GestureDetector(
-                    onTap: () => showControls.value = !showControls.value, // Toggle controls
+                    onTap: () => showControls.value =
+                        !showControls.value, // Toggle controls
                     child: Container(
-                      padding: EdgeInsets.only(bottom: 100), // Space for bottom thumbnails
+                      padding: EdgeInsets.only(
+                          bottom: 100), // Space for bottom thumbnails
                       child: InteractiveViewer(
                         minScale: 0.5,
                         maxScale: 4.0,
@@ -696,118 +769,138 @@ class AddTreesPage extends GetWidget<AddTreeController> {
 
             // 2. Top Bar (Gradient + Close + Counter)
             Obx(() => AnimatedPositioned(
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              top: showControls.value ? 0 : -100, // Hide by moving up
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(16, 40, 16, 20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Close Button
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Container(
-                        padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.close, color: Colors.white, size: 24),
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  top: showControls.value ? 0 : -100, // Hide by moving up
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(16, 40, 16, 20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.8),
+                          Colors.transparent
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
-                    
-                    // Counter Pill
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Text(
-                        "${currentIndex.value + 1} / ${controller.capturedPhotos.length}",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )),
-
-            // 3. Bottom Thumbnail Strip (Gradient + List)
-            Obx(() => AnimatedPositioned(
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              bottom: showControls.value ? 0 : -120, // Hide by moving down
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  itemCount: controller.capturedPhotos.length,
-                  itemBuilder: (context, index) {
-                    return Obx(() { // Listen to currentIndex changes for selection style
-                      final isSelected = currentIndex.value == index;
-                      return GestureDetector(
-                        onTap: () {
-                          currentIndex.value = index;
-                          pageController.animateToPage(
-                            index,
-                            duration: Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 200),
-                          margin: EdgeInsets.only(right: 12),
-                          width: isSelected ? 60 : 50, // Active item is larger
-                          height: isSelected ? 60 : 50,
-                          decoration: BoxDecoration(
-                            border: isSelected
-                                ? Border.all(color: context.theme.primaryColor, width: 2)
-                                : Border.all(color: Colors.white30, width: 1),
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: isSelected
-                                ? [BoxShadow(color: context.theme.primaryColor.withOpacity(0.5), blurRadius: 8)]
-                                : [],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Close Button
+                        GestureDetector(
+                          onTap: () => Get.back(),
+                          child: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.close,
+                                color: Colors.white, size: 24),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.file(
-                              File(controller.capturedPhotos[index]),
-                              fit: BoxFit.cover,
+                        ),
+
+                        // Counter Pill
+                        Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Text(
+                            "${currentIndex.value + 1} / ${controller.capturedPhotos.length}",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      );
-                    });
-                  },
-                ),
-              ),
-            )),
+                      ],
+                    ),
+                  ),
+                )),
+
+            // 3. Bottom Thumbnail Strip (Gradient + List)
+            Obx(() => AnimatedPositioned(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  bottom: showControls.value ? 0 : -120, // Hide by moving down
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.9)
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      itemCount: controller.capturedPhotos.length,
+                      itemBuilder: (context, index) {
+                        return Obx(() {
+                          // Listen to currentIndex changes for selection style
+                          final isSelected = currentIndex.value == index;
+                          return GestureDetector(
+                            onTap: () {
+                              currentIndex.value = index;
+                              pageController.animateToPage(
+                                index,
+                                duration: Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                            child: AnimatedContainer(
+                              duration: Duration(milliseconds: 200),
+                              margin: EdgeInsets.only(right: 12),
+                              width: isSelected
+                                  ? 60
+                                  : 50, // Active item is larger
+                              height: isSelected ? 60 : 50,
+                              decoration: BoxDecoration(
+                                border: isSelected
+                                    ? Border.all(
+                                        color: context.theme.primaryColor,
+                                        width: 2)
+                                    : Border.all(
+                                        color: Colors.white30, width: 1),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                            color: context.theme.primaryColor
+                                                .withOpacity(0.5),
+                                            blurRadius: 8)
+                                      ]
+                                    : [],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.file(
+                                  File(controller.capturedPhotos[index]),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          );
+                        });
+                      },
+                    ),
+                  ),
+                )),
           ],
         ),
       ),
@@ -815,7 +908,6 @@ class AddTreesPage extends GetWidget<AddTreeController> {
       useSafeArea: false,
     );
   }
-
 
   void _showTreeSelectionSheet(BuildContext context) {
     // Local search controller for the sheet
@@ -842,7 +934,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             Text(
               "Select Tree",
               style: TextStyle(
@@ -851,7 +943,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
               ),
             ),
             SizedBox(height: 16),
-            
+
             // Search Bar
             TextField(
               controller: searchController,
@@ -866,7 +958,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
               ),
             ),
             SizedBox(height: 12),
-            
+
             // List
             Expanded(
               child: Obx(() {
@@ -877,7 +969,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                 final trees = controller.trees.where((tree) {
                   final query = searchQuery.value.toLowerCase();
                   return tree.commonName.toLowerCase().contains(query) ||
-                         tree.scientificName.toLowerCase().contains(query);
+                      tree.scientificName.toLowerCase().contains(query);
                 }).toList();
 
                 if (trees.isEmpty) {
@@ -898,7 +990,8 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                       ),
                       subtitle: Text(
                         "${tree.scientificName} • ${tree.family}",
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600),
                       ),
                       onTap: () {
                         controller.selectTree(tree);

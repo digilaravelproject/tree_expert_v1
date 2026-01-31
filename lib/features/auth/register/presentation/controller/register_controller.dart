@@ -1,6 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
+import 'package:tree_expert/core/storage/shared_prefs.dart';
+import 'package:tree_expert/core/constent/app_constants.dart';
+import 'dart:convert';
 
 import '../../../services/auth_service.dart';
 import '../../data/model/register_req.dart';
@@ -9,7 +14,7 @@ import '../../domain/usecase/register_user_usecase.dart';
 class RegisterController extends GetxController {
   // Auth Service
   final AuthService authService;
-  
+
   // Use Case (kept for compatibility)
   final RegisterUserUseCase registerUserUseCase;
 
@@ -24,14 +29,14 @@ class RegisterController extends GetxController {
   // Text Controllers
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
-  final passwordCtrl = TextEditingController();
-  final confirmPasswordCtrl = TextEditingController();
+  final addressCtrl = TextEditingController();
+  final aadhaarCtrl = TextEditingController();
 
   // Observables
   final isLoading = false.obs;
-  final isPasswordValue = true.obs;
-  final isCnfPasswordValue = true.obs;
   final isEmailVerified = false.obs;
+  final selectedGender = 'Male'.obs;
+  final profileImage = Rx<File?>(null);
 
   // Get phone from previous screen
   String? phoneNumber;
@@ -52,62 +57,57 @@ class RegisterController extends GetxController {
   void onClose() {
     nameCtrl.dispose();
     emailCtrl.dispose();
-    passwordCtrl.dispose();
-    confirmPasswordCtrl.dispose();
+    addressCtrl.dispose();
+    aadhaarCtrl.dispose();
     super.onClose();
   }
 
-  // Verify Email (Optional)
-  Future<void> verifyEmail() async {
-    if (emailCtrl.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        "Please enter email address",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+  // Pick Image
+  Future<void> pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      profileImage.value = File(image.path);
+    }
+  }
+
+  // Register User / Complete Profile
+  Future<void> onRegister() async {
+    if (!formKey.currentState!.validate()) return;
+
+    if (aadhaarCtrl.text.length != 12) {
+      Get.snackbar("Error", "Aadhaar number must be 12 digits",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white);
       return;
     }
 
     try {
       isLoading.value = true;
-      await Future.delayed(const Duration(seconds: 1));
-      isEmailVerified.value = true;
 
-      Get.snackbar(
-        "Success",
-        "Email is valid",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Email verification failed",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    } finally {
-      isLoading.value = false;
-    }
-  }
+      // Get User ID from Shared Prefs
+      String? userDataStr = SharedPrefs.getString(AppConstants.userDataPref);
+      if (userDataStr == null) {
+        Get.snackbar("Error", "User details not found. Please login again.",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white);
+        return;
+      }
+      
+      Map<String, dynamic> userData = jsonDecode(userDataStr);
+      String userId = userData['id'].toString();
 
-  // Register User
-  Future<void> onRegister() async {
-    if (!formKey.currentState!.validate()) return;
-
-    try {
-      isLoading.value = true;
-
-      final result = await authService.registerUser(
+      final result = await authService.completeUserProfile(
+        userId: userId,
         name: nameCtrl.text.trim(),
         email: emailCtrl.text.trim(),
-        phoneCode: phoneCountryCode ?? '+91',
-        mobile: phoneNumber ?? '',
-        password: passwordCtrl.text,
+        gender: selectedGender.value.toLowerCase(),
+        aadhaarNumber: aadhaarCtrl.text.trim(),
+        address: addressCtrl.text.trim(),
+        profileImage: profileImage.value,
       );
 
       if (result.success) {
@@ -118,6 +118,15 @@ class RegisterController extends GetxController {
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
+
+        // Update local user data with new details if needed
+        // Assuming the API returns updated user object, we can update SharedPrefs
+        if (result.data != null && result.data is Map<String, dynamic> && result.data!.containsKey('user')) {
+             await SharedPrefs.setString(
+              AppConstants.userDataPref,
+              jsonEncode(result.data!['user']),
+            );
+        }
 
         // Navigate to Dashboard
         Get.offAllNamed(AppRoutes.dashboard);

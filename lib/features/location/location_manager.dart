@@ -27,11 +27,7 @@ class LocationManager extends GetxController {
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        Get.snackbar(
-          'Location Services Disabled',
-          'Please enable location services',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        print('Location Services Disabled: Please enable location services');
         isLoading.value = false;
         return;
       }
@@ -42,23 +38,14 @@ class LocationManager extends GetxController {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          Get.snackbar(
-            'Permission Denied',
-            'Location permission is required',
-            snackPosition: SnackPosition.BOTTOM,
-          );
+          print('Permission Denied: Location permission is required');
           isLoading.value = false;
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        Get.snackbar(
-          'Permission Denied Forever',
-          'Please enable location permission from settings',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: Duration(seconds: 4),
-        );
+        print('Permission Denied Forever: Please enable location permission from settings');
         isLoading.value = false;
         return;
       }
@@ -69,11 +56,6 @@ class LocationManager extends GetxController {
       startLocationUpdates();
     } catch (e) {
       print('Permission Error: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to get location permission',
-        snackPosition: SnackPosition.BOTTOM,
-      );
     } finally {
       isLoading.value = false;
     }
@@ -95,11 +77,6 @@ class LocationManager extends GetxController {
       await getAddressFromCoordinates(position.latitude, position.longitude);
     } catch (e) {
       print('Get Location Error: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to get current location',
-        snackPosition: SnackPosition.BOTTOM,
-      );
     } finally {
       isLoading.value = false;
     }

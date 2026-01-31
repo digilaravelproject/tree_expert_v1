@@ -123,4 +123,25 @@ class TreesRepository {
       return ApiResponse.error('Error submitting trees: $e');
     }
   }
+  Future<ApiResponse<Map<String, dynamic>>> getTreeRequirements({required String roleId, required String projectId}) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.getTreeRequirements,
+        data: {'role_id': roleId, 'project_id': projectId},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['success'] == true) {
+             return ApiResponse.success(Map<String, dynamic>.from(data['requirements']));
+        } else {
+             return ApiResponse.error(data is Map ? (data['message'] ?? 'Failed to fetch requirements') : 'Failed');
+        }
+      } else {
+        return ApiResponse.error('Failed to fetch requirements');
+      }
+    } catch (e) {
+      return ApiResponse.error('Error fetching requirements: $e');
+    }
+  }
 }

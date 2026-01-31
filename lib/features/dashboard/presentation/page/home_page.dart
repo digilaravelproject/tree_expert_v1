@@ -8,6 +8,7 @@ import 'package:tree_expert/widgets/custom_image_view.dart';
 import 'package:shimmer/shimmer.dart';
 
 
+import '../../../auth/services/auth_service.dart';
 import '../widgets/project_card_shimmer.dart';
 import '../widgets/api_project_card.dart';
 import '../controller/home_controller.dart';
@@ -288,7 +289,7 @@ class HomePage extends GetWidget<HomeController> {
                               ),
                             ],
                           ),
-                          InkWell(
+                          Obx(() => !Get.find<AuthService>().isCompanyLogin.value ? InkWell(
                              onTap: () {
                                Get.toNamed(AppRoutes.addProjects);
                              },
@@ -301,7 +302,7 @@ class HomePage extends GetWidget<HomeController> {
                                  size: 26
                                ),
                              ),
-                          ),
+                          ) : SizedBox.shrink()),
                         ],
                       ),
                     ),

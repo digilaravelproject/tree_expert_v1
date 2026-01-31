@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import '../../../../core/storage/shared_prefs.dart';
 import '../../../dashboard/presentation/controller/home_controller.dart';
 import '../../../location/location_manager.dart';
 import '../../../camera/presentation/page/geo_tag_camera_page.dart';
@@ -10,6 +11,8 @@ import '../../data/repository/trees_repository.dart';
 import '../../data/model/tree_model.dart';
 import '../../data/model/tree_entry.dart';
 import 'dart:async'; // For timer
+import 'dart:convert';
+import '../../../../core/constent/app_constants.dart';
 
 class AddTreeController extends GetxController {
   final LocationManager locationManager = LocationManager.instance;
@@ -40,6 +43,7 @@ class AddTreeController extends GetxController {
   final RxList<String> capturedPhotos = <String>[].obs; // Multiple photos with paths
   final RxBool isLoading = false.obs;
   final RxInt currentTreeNo = 1.obs;
+  final RxMap<String, dynamic> fieldRequirements = <String, dynamic>{}.obs;
   
   // IDs
   String? projectId;
@@ -87,6 +91,7 @@ class AddTreeController extends GetxController {
     fetchTrees();
     _initializeForm();
     _fetchUserId();
+    _fetchFieldRequirements();
 
     // Listen to girth changes for auto-calculation
     girthController.addListener(_onGirthChanged);
@@ -301,12 +306,96 @@ class AddTreeController extends GetxController {
   }
 
   bool _validateCurrentForm() {
+    // 1. Always required (System requirement)
     if (treeNameController.text.trim().isEmpty) {
-      Get.snackbar("Error", "Tree name is required");
+      Get.snackbar("Required", "Tree name is required", 
+          snackPosition: SnackPosition.BOTTOM, 
+          backgroundColor: Colors.red, 
+          colorText: Colors.white);
       return false;
     }
-    // Add other validations if needed
+
+    // 2. Dynamic Validations from API
+    final req = fieldRequirements;
+    // Map field keys to controllers/values
+    Map<String, String> fieldValues = {
+      'ward_plot_no': wardPlotNoController.text,
+      'tree_no': treeNoController.text,
+      'tree_name': treeNameController.text,
+      'scientific_name': scientificNameController.text,
+      'family': familyController.text,
+      'girth': girthController.text,
+      'height': heightController.text,
+      'canopy': canopyController.text,
+      'age': ageController.text,
+      'condition': selectedCondition.value,
+      'address': addressController.text,
+      'landmark': landmarkController.text,
+      'ownership': selectedOwnership.value,
+      'concern_person': concernPersonController.text,
+      'remark': remarkController.text,
+    };
+
+    String? firstError;
+
+    // Iterate through requirements provided by API
+    for (var entry in req.entries) {
+      final key = entry.key;
+      final isRequired = entry.value == true;
+      
+      if (isRequired) {
+        if (key == 'tree_images') {
+          if (capturedPhotos.isEmpty) {
+            firstError = "At least one tree image is required";
+            break;
+          }
+        } else if (fieldValues.containsKey(key)) {
+          if (fieldValues[key]!.trim().isEmpty) {
+            firstError = "${_formatFieldName(key)} is required";
+            break;
+          }
+        }
+      }
+    }
+
+    if (firstError != null) {
+      Get.snackbar("Required", firstError, 
+          snackPosition: SnackPosition.BOTTOM, 
+          backgroundColor: Colors.red, 
+          colorText: Colors.white);
+      return false;
+    }
+
     return true;
+  }
+
+  String _formatFieldName(String key) {
+    return key.split('_').map((e) => e.capitalizeFirst).join(' ');
+  }
+
+  Future<void> _fetchFieldRequirements() async {
+    if (projectId == null) return;
+    
+    try {
+      String roleId = "";
+      String? userDataStr = SharedPrefs.getString(AppConstants.userDataPref);
+      if (userDataStr != null) {
+        final userData = jsonDecode(userDataStr);
+        roleId = userData['role_id']?.toString() ?? "";
+      }
+
+      final response = await _treesRepository.getTreeRequirements(
+        roleId: roleId,
+        projectId: projectId!,
+      );
+
+      if (response.success && response.data != null) {
+        fieldRequirements.value = response.data!;
+        print("Fetched Requirements: $fieldRequirements");
+      }
+    } catch (e) {
+      print("Error fetching requirements: $e");
+    }
   }
 
   void _saveCurrentTreeToLocal() {
@@ -397,10 +486,12 @@ class AddTreeController extends GetxController {
   }
 
   Future<void> submitAllTrees() async {
-    // Ensure current form is saved if valid
-    if (treeNameController.text.isNotEmpty) {
-      _saveCurrentTreeToLocal();
+    // Ensure current form is valid and saved
+    if (!_validateCurrentForm()) {
+      return; 
     }
+    
+    _saveCurrentTreeToLocal();
 
     if (localTrees.isEmpty) {
       Get.snackbar("Error", "No trees to submit");

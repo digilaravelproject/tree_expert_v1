@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
+import 'package:tree_expert/features/auth/services/auth_service.dart';
 import '../../../projects/data/model/project_list_model.dart';
 import 'download_options_bottom_sheet.dart';
 
@@ -173,60 +174,68 @@ class ApiProjectCard extends StatelessWidget {
             SizedBox(height: 8),
             
             // Action Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildActionButton(
-                  context,
-                  icon: Icons.edit_outlined,
-                  label: "Edit",
-                  color: Colors.blue,
-                  onTap: () {
-                    // Navigate to edit project page with project data
-                    Get.toNamed('/addProjects', arguments: {'project': project});
-                  },
-                ),
-                Container(
-                  width: 1,
-                  height: 30,
-                  color: Colors.grey.shade200,
-                ),
-                _buildActionButton(
-                  context,
-                  icon: Icons.download_outlined,
-                  label: "Download",
-                  color: Colors.green,
-                  onTap: () {
-                    // Show download options bottom sheet
-                    Get.bottomSheet(
-                      DownloadOptionsBottomSheet(
-                        projectName: project.projectName,
-                        projectId: project.id,
-                      ),
-                      isScrollControlled: true,
-                    );
-                  },
-                ),
-                Container(
-                  width: 1,
-                  height: 30,
-                  color: Colors.grey.shade200,
-                ),
-                _buildActionButton(
-                  context,
-                  icon: Icons.add_circle_outline,
-                  label: "Add Tree",
-                  color: context.theme.primaryColor,
-                  onTap: () {
-                    // Navigate to add tree page with project ID and count
-                    Get.toNamed('/addTrees', arguments: {
-                      'projectId': project.id,
-                      'treesCount': project.treesCount,
-                    });
-                  },
-                ),
-              ],
-            ),
+            Obx(() {
+              final bool isCompany = Get.find<AuthService>().isCompanyLogin.value;
+              
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  if (!isCompany) ...[
+                    _buildActionButton(
+                      context,
+                      icon: Icons.edit_outlined,
+                      label: "Edit",
+                      color: Colors.blue,
+                      onTap: () {
+                        // Navigate to edit project page with project data
+                        Get.toNamed('/addProjects', arguments: {'project': project});
+                      },
+                    ),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: Colors.grey.shade200,
+                    ),
+                  ],
+                  if (project.treesCount > 0) ...[
+                    _buildActionButton(
+                      context,
+                      icon: Icons.download_outlined,
+                      label: "Download",
+                      color: Colors.green,
+                      onTap: () {
+                        // Show download options bottom sheet
+                        Get.bottomSheet(
+                          DownloadOptionsBottomSheet(
+                            projectName: project.projectName,
+                            projectId: project.id,
+                          ),
+                          isScrollControlled: true,
+                        );
+                      },
+                    ),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: Colors.grey.shade200,
+                    ),
+                  ],
+                  _buildActionButton(
+                    context,
+                    icon: Icons.add_circle_outline,
+                    label: "Add Tree",
+                    color: context.theme.primaryColor,
+                    onTap: () {
+                      // Navigate to add tree page with project ID and count
+                      Get.toNamed('/addTrees', arguments: {
+                        'projectId': project.id,
+                        'treesCount': project.treesCount,
+                      });
+                    },
+                  ),
+                ],
+              );
+            }),
           ],
         ),
       ),

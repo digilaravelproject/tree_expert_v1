@@ -1,5 +1,8 @@
 import 'dart:convert';
-import 'package:get/get.dart';
+import 'dart:io';
+import 'package:get/get.dart' hide FormData;
+import 'package:dio/dio.dart' as dio;
+import 'package:dio/dio.dart';
 
 import '../../../core/constent/api_constants.dart';
 import '../../../core/constent/app_constants.dart';
@@ -35,11 +38,10 @@ class AuthService extends GetxService {
   }) async {
     try {
       final response = await _apiClient.post(
-        ApiConstants.loginWithOtp,
-        data: {
-          'phone_country_code': phoneCode,
+        ApiConstants.sendLoginOtp,
+        data: FormData.fromMap({
           'phone': mobile,
-        },
+        }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -70,23 +72,32 @@ class AuthService extends GetxService {
   }) async {
     try {
       final response = await _apiClient.post(
-        ApiConstants.verifyOtp,
-        data: {
-          'phone_country_code': phoneCode,
+        ApiConstants.otpVerify,
+        data: FormData.fromMap({
           'phone': mobile,
           'otp': otp,
-        },
+        }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
 
-        // Save token if present
+        // Check verification status
+        // 0 = Not verified (New) -> Register
+        // 1 = Verified (Existing) -> Dashboard
+        int isVerified = data['is_verified'] ?? 0;
+        if (data['user'] != null && data['user']['is_verified'] != null) {
+             isVerified = int.tryParse(data['user']['is_verified'].toString()) ?? 0;
+        }
+        
+        // Also check is_new_user flag as fallback or combined logic if needed
+        bool isNewUser = (isVerified == 0);
+
+        // Save token if present (Always save)
         if (data['access_token'] != null) {
           await TokenManager.saveToken(data['access_token']);
         }
 
-        // Save user data
         if (data['user'] != null) {
           await SharedPrefs.setString(
             AppConstants.userDataPref,
@@ -94,15 +105,24 @@ class AuthService extends GetxService {
           );
         }
 
-        // Update login state
-        await SharedPrefs.setBool(AppConstants.isLoggedInPref, true);
-        await SharedPrefs.setBool(AppConstants.isCompanyLoginPref, false);
-        isLoggedIn.value = true;
-        isCompanyLogin.value = false;
+        if (!isNewUser) {
+          // Save user data
+
+
+          // Check role_id
+          int roleId = data['user']['role_id'] ?? 0;
+          bool isCompany = (roleId == AppConstants.roleIdCompany);
+
+          // Update login state
+          await SharedPrefs.setBool(AppConstants.isLoggedInPref, true);
+          await SharedPrefs.setBool(AppConstants.isCompanyLoginPref, isCompany);
+          isLoggedIn.value = true;
+          isCompanyLogin.value = isCompany;
+        }
 
         return ApiResponse.success(
           {
-            'is_new_user': data['is_new_user'] ?? false,
+            'is_new_user': isNewUser,
             'user': data['user'],
           },
           message: data['message'] ?? 'Login successful',
@@ -123,57 +143,67 @@ class AuthService extends GetxService {
   }
 
   /// Register new user
-  Future<ApiResponse<Map<String, dynamic>>> registerUser({
+  /// Complete User Profile (Upload Profile Image & Details)
+  Future<ApiResponse<Map<String, dynamic>>> completeUserProfile({
+    required String userId,
     required String name,
     required String email,
-    required String phoneCode,
-    required String mobile,
-    required String password,
-    String? profileImage,
+    required String gender,
+    required String aadhaarNumber,
+    required String address,
+    File? profileImage,
   }) async {
     try {
+      final Map<String, dynamic> data = {
+        'user_id': userId,
+        'name': name,
+        'email': email,
+        'gender': gender,
+        'aadhaar_number': aadhaarNumber,
+        'address': address,
+      };
+
+      // Add profile image if selected
+      if (profileImage != null) {
+        data['profile_image'] = await dio.MultipartFile.fromFile(
+          profileImage.path,
+          filename: profileImage.path.split('/').last,
+        );
+      }
+
       final response = await _apiClient.post(
-        ApiConstants.userRegister,
-        data: {
-          'name': name,
-          'email': email,
-          'phone_country_code': phoneCode,
-          'phone': mobile,
-          'password': password,
-          if (profileImage != null) 'profile_image': profileImage,
-        },
+        ApiConstants.uploadProfileImage,
+        data: dio.FormData.fromMap(data),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
 
-        // Save token
-        if (data['access_token'] != null) {
-          await TokenManager.saveToken(data['access_token']);
-        }
-
-        // Save user data
-        if (data['user'] != null) {
+        // Save updated user data
+        if (data['data'] != null) {
           await SharedPrefs.setString(
             AppConstants.userDataPref,
-            jsonEncode(data['user']),
+            jsonEncode(data['data']),
           );
+
+          // Update login state & role
+          int roleId = data['data']['role_id'] ?? 0;
+          bool isCompany = (roleId == AppConstants.roleIdCompany);
+
+          await SharedPrefs.setBool(AppConstants.isLoggedInPref, true);
+          await SharedPrefs.setBool(AppConstants.isCompanyLoginPref, isCompany);
+          isLoggedIn.value = true;
+          isCompanyLogin.value = isCompany;
         }
 
-        // Update login state
-        await SharedPrefs.setBool(AppConstants.isLoggedInPref, true);
-        await SharedPrefs.setBool(AppConstants.isCompanyLoginPref, false);
-        isLoggedIn.value = true;
-        isCompanyLogin.value = false;
-
         return ApiResponse.success(
-          {'user': data['user']},
-          message: data['message'] ?? 'Registration successful',
+          data,
+          message: data['message'] ?? 'Profile updated successfully',
           code: response.statusCode,
         );
       } else {
         return ApiResponse.error(
-          response.data['message'] ?? 'Registration failed',
+          response.data['message'] ?? 'Failed to update profile',
           code: response.statusCode,
         );
       }
@@ -195,11 +225,10 @@ class AuthService extends GetxService {
     try {
       final response = await _apiClient.post(
         ApiConstants.loginEmailWithPassward,
-        data: {
+        data: FormData.fromMap({
           'email': email,
           'password': password,
-          'login_type': 'company',
-        },
+        }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -218,11 +247,15 @@ class AuthService extends GetxService {
           );
         }
 
+        // Check role_id
+        int roleId = data['user']['role_id'] ?? 0;
+        bool isCompany = (roleId == AppConstants.roleIdCompany);
+
         // Update login state
         await SharedPrefs.setBool(AppConstants.isLoggedInPref, true);
-        await SharedPrefs.setBool(AppConstants.isCompanyLoginPref, true);
+        await SharedPrefs.setBool(AppConstants.isCompanyLoginPref, isCompany);
         isLoggedIn.value = true;
-        isCompanyLogin.value = true;
+        isCompanyLogin.value = isCompany;
 
         return ApiResponse.success(
           {'user': data['user']},
@@ -396,21 +429,5 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Upload profile image
-  Future<ApiResponse<Map<String, dynamic>>> uploadProfileImage({
-    required String imagePath,
-  }) async {
-    try {
-      // Implementation depends on your multipart upload method
-      return ApiResponse.success(
-        {},
-        message: 'Profile image uploaded successfully',
-      );
-    } catch (e) {
-      return ApiResponse.error(
-        e.toString(),
-        error: e,
-      );
-    }
-  }
+
 }

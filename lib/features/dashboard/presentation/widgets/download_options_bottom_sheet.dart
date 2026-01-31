@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../projects/data/repository/projects_repository.dart';
 
-class DownloadOptionsBottomSheet extends StatelessWidget {
+class DownloadOptionsBottomSheet extends StatefulWidget {
   final String projectName;
   final int projectId;
 
@@ -10,6 +12,51 @@ class DownloadOptionsBottomSheet extends StatelessWidget {
     required this.projectName,
     required this.projectId,
   });
+
+  @override
+  State<DownloadOptionsBottomSheet> createState() => _DownloadOptionsBottomSheetState();
+}
+
+class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet> {
+  final ProjectsRepository _repository = Get.find<ProjectsRepository>();
+  bool _isLoading = true;
+  Map<String, String>? _links;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLinks();
+  }
+
+  Future<void> _fetchLinks() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final response = await _repository.getProjectExportLinks(widget.projectId.toString());
+
+    if (response.success && response.data != null) {
+      final linksData = response.data!['links'];
+      if (linksData != null && linksData is Map) {
+        setState(() {
+          _links = Map<String, String>.from(linksData.map((key, value) => MapEntry(key.toString(), value.toString())));
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = "No download links available";
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        _error = response.message ?? "Failed to fetch links";
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +111,7 @@ class DownloadOptionsBottomSheet extends StatelessWidget {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        projectName,
+                        widget.projectName,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade600,
@@ -85,68 +132,83 @@ class DownloadOptionsBottomSheet extends StatelessWidget {
 
           Divider(height: 1),
 
-          // Download Options
-          ListView(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(vertical: 8),
-            children: [
-              _buildDownloadOption(
-                icon: Icons.map,
-                title: "KML",
-                subtitle: "Download KML file",
-                color: Colors.blue,
-                onTap: () {
-                  Get.back();
-                  _handleDownload("KML", projectId);
-                },
-              ),
-              _buildDownloadOption(
-                icon: Icons.photo_library,
-                title: "KML (along with Photo)",
-                subtitle: "KML file with photos included",
-                color: Colors.purple,
-                onTap: () {
-                  Get.back();
-                  _handleDownload("KML_WITH_PHOTO", projectId);
-                },
-              ),
-              _buildDownloadOption(
-                icon: Icons.table_chart,
-                title: "Excel",
-                subtitle: "Download as Excel spreadsheet",
-                color: Colors.green,
-                onTap: () {
-                  Get.back();
-                  _handleDownload("EXCEL", projectId);
-                },
-              ),
-              _buildDownloadOption(
-                icon: Icons.photo_camera,
-                title: "Photo (Compress Rar File)",
-                subtitle: "Download compressed photos",
-                color: Colors.orange,
-                onTap: () {
-                  Get.back();
-                  _handleDownload("PHOTO_RAR", projectId);
-                },
-              ),
-              _buildDownloadOption(
-                icon: Icons.description,
-                title: "Report",
-                subtitle: "Download project report",
-                color: Colors.red,
-                onTap: () {
-                  Get.back();
-                  _handleDownload("REPORT", projectId);
-                },
-              ),
-            ],
+          // Content
+          ConstrainedBox(
+            constraints: BoxConstraints(minHeight: 150),
+            child: _buildContent(),
           ),
 
           SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 40),
+              SizedBox(height: 12),
+              Text(_error!, style: TextStyle(color: Colors.grey.shade700)),
+              TextButton(onPressed: _fetchLinks, child: Text("Retry")),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_links == null || _links!.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: Text("No files available for download"),
+        ),
+      );
+    }
+
+    return ListView(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.symmetric(vertical: 8),
+      children: [
+        if (_links!.containsKey('pdf'))
+          _buildDownloadOption(
+            icon: Icons.picture_as_pdf,
+            title: "PDF Report",
+            subtitle: "Download project as PDF",
+            color: Colors.red,
+            onTap: () => _handleLaunch(_links!['pdf']!),
+          ),
+        if (_links!.containsKey('excel'))
+          _buildDownloadOption(
+            icon: Icons.table_chart,
+            title: "Excel",
+            subtitle: "Download as Excel spreadsheet",
+            color: Colors.green,
+            onTap: () => _handleLaunch(_links!['excel']!),
+          ),
+        if (_links!.containsKey('kml'))
+          _buildDownloadOption(
+            icon: Icons.map,
+            title: "KML",
+            subtitle: "Download KML file",
+            color: Colors.blue,
+            onTap: () => _handleLaunch(_links!['kml']!),
+          ),
+      ],
     );
   }
 
@@ -206,16 +268,18 @@ class DownloadOptionsBottomSheet extends StatelessWidget {
     );
   }
 
-  void _handleDownload(String type, int projectId) {
-    // TODO: Implement actual download logic
-    Get.snackbar(
-      "Downloading",
-      "Preparing $type download for project #$projectId...",
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      icon: Icon(Icons.download, color: Colors.white),
-      duration: Duration(seconds: 2),
-    );
+  Future<void> _handleLaunch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Get.snackbar(
+        "Error",
+        "Could not open download link",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 }

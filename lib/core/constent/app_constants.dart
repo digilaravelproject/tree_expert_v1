@@ -16,7 +16,11 @@ class AppConstants {
   static const String languagePref = "language";
   static const String themePref = "theme_mode";
 
-  // User Type
   static const String userTypeUser = "user";
   static const String userTypeCompany = "company";
+
+  static const int roleIdCompany = 2;
+
+  // OTP Settings
+  static const int otpLength = 4;
 }

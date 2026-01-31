@@ -33,7 +33,7 @@ class TreeModel {
       id: json['id'] ?? 0,
       commonName: json['tree_name'] ?? '',
       scientificName: json['scientific_name'] ?? '',
-      family: json['family'] ?? '',
+      family: json['family_name'] ?? json['family'] ?? '',
       treeNo: json['tree_no'] ?? '',
       condition: json['condition'] ?? '',
       imageUrl: json['captured_image'] ?? json['tree_image_upload'],

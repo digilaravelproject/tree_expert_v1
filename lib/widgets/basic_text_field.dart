@@ -17,6 +17,7 @@ class AppInputTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
+  final int? maxLength;
 
   /// 🔽 Dropdown related
   final bool isDropdown;
@@ -44,6 +45,7 @@ class AppInputTextField extends StatelessWidget {
     this.isDropdown = false,
     this.dropdownItems,
     this.onDropdownChanged,
+    this.maxLength,
   }) : assert(
          isDropdown == false || dropdownItems != null,
          'dropdownItems must be provided when isDropdown is true',
@@ -68,6 +70,7 @@ class AppInputTextField extends StatelessWidget {
           obscureText: isObscure,
           keyboardType: textInputType,
           autofillHints: hint,
+          maxLength: maxLength,
           onTapOutside: (_) => FocusScope.of(context).unfocus(),
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: validator,

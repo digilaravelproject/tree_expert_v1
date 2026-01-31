@@ -9,14 +9,15 @@ class ApiConstants {
     static const String authorization = "Authorization";
 
     // User Auth Endpoints
-    static const String loginWithOtp = "login-with-otp"; //missing
-    static const String otpVerify = "otp-verify";  //missing
+    static const String sendLoginOtp = "send-login-otp";
+    static const String otpVerify = "verify-otp";
     static const String userRegister = "user_register";
 
     static const String loginEmailWithPassward = "login";
     static const String logout = "logout";
     static const String userProfile = "users"; // users/{id}
     static const String uploadProfileImage = "upload-profile-image";
+    static const String getTreeRequirements = "get_tree_requirements";
 
     // Password Reset Endpoints
     static const String sendOtp = "password/send-otp";
@@ -38,6 +39,7 @@ class ApiConstants {
     static const String treeMeasure = "tree/measure";
     static const String saveTrees = "trees-add";
     static const String treeInProject = "tree_in_project";
+    static const String getProjectExportLinks = "get_project_export_links";
 
 
 

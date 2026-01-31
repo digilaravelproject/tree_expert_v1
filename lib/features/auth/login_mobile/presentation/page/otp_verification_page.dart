@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../../../core/constent/app_constants.dart';
 import '../../../../../core/styles/app_decoration.dart';
 import '../controller/mobile_login_controller.dart';
 
@@ -26,11 +27,11 @@ class VerifyOtpBottomSheet extends StatefulWidget {
 
 class _VerifyOtpBottomSheetState extends State<VerifyOtpBottomSheet> {
   final List<TextEditingController> otpControllers = List.generate(
-    6,
+    AppConstants.otpLength,
         (_) => TextEditingController(),
   );
 
-  final List<FocusNode> otpFocusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> otpFocusNodes = List.generate(AppConstants.otpLength, (_) => FocusNode());
 
   /// ✅ Reactive variables
   final RxInt countdown = 30.obs;
@@ -135,7 +136,7 @@ class _VerifyOtpBottomSheetState extends State<VerifyOtpBottomSheet> {
 
                 /// Subtext
                 Text(
-                  "Enter the 6-digit code sent to\n${controller.selectedPhone.value.displayCC} ${controller.mobileController.text}",
+                  "Enter the ${AppConstants.otpLength}-digit code sent to\n${controller.selectedPhone.value.displayCC} ${controller.mobileController.text}",
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: Colors.grey.shade600,
@@ -148,7 +149,7 @@ class _VerifyOtpBottomSheetState extends State<VerifyOtpBottomSheet> {
                 /// OTP Boxes
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(6, (index) {
+                  children: List.generate(AppConstants.otpLength, (index) {
                     return TextFormField(
                       controller: otpControllers[index],
                       focusNode: otpFocusNodes[index],
@@ -173,7 +174,7 @@ class _VerifyOtpBottomSheetState extends State<VerifyOtpBottomSheet> {
                         ),
                       ),
                       onChanged: (value) {
-                        if (value.isNotEmpty && index < 5) {
+                        if (value.isNotEmpty && index < AppConstants.otpLength - 1) {
                           otpFocusNodes[index + 1].requestFocus();
                         } else if (value.isEmpty && index > 0) {
                           otpFocusNodes[index - 1].requestFocus();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
 
+import 'package:tree_expert/core/constent/app_constants.dart';
 import '../../../services/auth_service.dart';
 import '../page/otp_verification_page.dart';
 
@@ -83,10 +84,10 @@ class MobileLoginController extends GetxController {
 
     // Verify OTP
     Future<void> verifyOtp(String otp) async {
-        if (otp.length != 6) {
+        if (otp.length != AppConstants.otpLength) {
             Get.snackbar(
                 "Error",
-                "Please enter complete 6-digit OTP",
+                "Please enter complete ${AppConstants.otpLength}-digit OTP",
                 snackPosition: SnackPosition.BOTTOM,
                 backgroundColor: Colors.red,
                 colorText: Colors.white,

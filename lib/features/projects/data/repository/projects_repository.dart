@@ -177,4 +177,40 @@ class ProjectsRepository {
       );
     }
   }
+
+  /// Get Project Export Links
+  Future<ApiResponse<Map<String, dynamic>>> getProjectExportLinks(String projectId) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.getProjectExportLinks,
+        data: {'project_id': projectId},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResponse.success(
+            data,
+            message: data['message'] ?? 'Export links fetched successfully',
+            code: response.statusCode,
+          );
+        } else {
+          return ApiResponse.error(
+            data['message'] ?? 'Failed to fetch export links',
+            code: response.statusCode,
+          );
+        }
+      } else {
+        return ApiResponse.error(
+          'Failed to fetch export links',
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(
+        'Error fetching export links: $e',
+        error: e,
+      );
+    }
+  }
 }

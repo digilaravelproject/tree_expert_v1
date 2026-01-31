@@ -19,6 +19,10 @@ class HomeController extends GetxController {
   // Location Manager instance
   final locationManager = LocationManager.instance;
 
+  // Location logic state
+  bool _isLocationDialogOpen = false;
+  bool _isCheckingLocation = false;
+
   // User data
   final RxString userName = 'User'.obs;
   final RxString userEmail = ''.obs;
@@ -53,7 +57,7 @@ class HomeController extends GetxController {
 
   // Dashboard Repository
   final DashboardRepository _dashboardRepository = DashboardRepository();
-  final ProjectsRepository _projectsRepository = ProjectsRepository();
+  final ProjectsRepository _projectsRepository = Get.find<ProjectsRepository>();
 
   // Observable stats
   final RxInt projectCount = 0.obs;
@@ -90,35 +94,56 @@ class HomeController extends GetxController {
   }
 
   Future<void> _ensureLocationAndFetchData() async {
-    // 1. Check Service
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showLocationServiceDialog();
-      return; 
-    }
+    print("DEBUG: _ensureLocationAndFetchData called. _isCheckingLocation: $_isCheckingLocation");
+    if (_isCheckingLocation) return;
+    _isCheckingLocation = true;
 
-    // 2. Check Permission
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _showPermissionDeniedDialog();
+    try {
+      // 1. Check Service
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print("DEBUG: Location service enabled: $serviceEnabled");
+      if (!serviceEnabled) {
+        _showLocationServiceDialog();
         return;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      _showPermissionPermanentDialog();
-      return;
-    }
+      // 2. Check Permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      print("DEBUG: Location permission: $permission");
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        print("DEBUG: Location permission after request: $permission");
+        if (permission == LocationPermission.denied) {
+          _showPermissionDeniedDialog();
+          return;
+        }
+      }
 
-    // 3. If Valid, Proceed
-    await locationManager.getCurrentLocation();
-    _fetchDashboardStats();
-    fetchProjects();
+      if (permission == LocationPermission.deniedForever) {
+        _showPermissionPermanentDialog();
+        return;
+      }
+
+      // 3. If Valid, Proceed
+      print("DEBUG: Fetching location and data...");
+      await locationManager.getCurrentLocation();
+      _fetchDashboardStats();
+      fetchProjects();
+    } catch (e) {
+      print("DEBUG: Error in _ensureLocationAndFetchData: $e");
+    } finally {
+      _isCheckingLocation = false;
+    }
   }
 
   void _showLocationServiceDialog() {
+    print("DEBUG: _showLocationServiceDialog. _isLocationDialogOpen: $_isLocationDialogOpen");
+    if (_isLocationDialogOpen) return;
+    _isLocationDialogOpen = true;
+
+    // Start background check immediately
+    _startLocationServiceCheck();
+
     Get.dialog(
       WillPopScope(
         onWillPop: () async => false,
@@ -129,48 +154,59 @@ class HomeController extends GetxController {
             TextButton(
               onPressed: () async {
                 await Geolocator.openLocationSettings();
-                // Start checking in background
-                _startLocationServiceCheck();
               },
               child: Text("Enable"),
             ),
             TextButton(
               onPressed: () async {
-                 // Check status before closing logic
-                 bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                 if (serviceEnabled) {
-                   Get.back();
-                   _ensureLocationAndFetchData();
-                 } else {
-                   Get.snackbar("Location Required", "Please enable location services first.", 
-                     snackPosition: SnackPosition.BOTTOM, margin: EdgeInsets.all(10));
-                 }
+                bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                print("DEBUG: Retry clicked. serviceEnabled: $serviceEnabled");
+                if (serviceEnabled) {
+                  _isLocationDialogOpen = false;
+                  if (Get.isDialogOpen ?? false) Get.back();
+                  // Add a small delay for OS to update state
+                  Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
+                } else {
+                  Get.snackbar("Location Required", "Please enable location services first.",
+                      snackPosition: SnackPosition.BOTTOM, margin: EdgeInsets.all(10));
+                }
               },
-               child: Text("Retry"),
+              child: Text("Retry"),
             )
           ],
         ),
       ),
       barrierDismissible: false,
-    );
+    ).then((_) {
+      print("DEBUG: Location service dialog closed");
+      _isLocationDialogOpen = false;
+    });
   }
 
   // Periodically check if location service is enabled
   void _startLocationServiceCheck() {
     Future.delayed(Duration(seconds: 1), () async {
-      if (Get.isDialogOpen ?? false) {
+      if (_isLocationDialogOpen && (Get.isDialogOpen ?? false)) {
         bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (serviceEnabled) {
-          Get.back(); // Close dialog
-          _ensureLocationAndFetchData();
+          print("DEBUG: Background check: service enabled. Closing dialog.");
+          _isLocationDialogOpen = false;
+          Get.back();
+          Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
         } else {
           _startLocationServiceCheck(); // Check again
         }
+      } else {
+         print("DEBUG: Background check stopped. _isLocationDialogOpen: $_isLocationDialogOpen, isDialogOpen: ${Get.isDialogOpen}");
       }
     });
   }
 
   void _showPermissionDeniedDialog() {
+    print("DEBUG: _showPermissionDeniedDialog. _isLocationDialogOpen: $_isLocationDialogOpen");
+    if (_isLocationDialogOpen) return;
+    _isLocationDialogOpen = true;
+
     Get.dialog(
       WillPopScope(
         onWillPop: () async => false,
@@ -182,15 +218,18 @@ class HomeController extends GetxController {
               onPressed: () async {
                 // Request permission directly
                 LocationPermission permission = await Geolocator.requestPermission();
+                print("DEBUG: Permission requested: $permission");
                 if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-                  Get.back();
-                  _ensureLocationAndFetchData();
+                  _isLocationDialogOpen = false;
+                  if (Get.isDialogOpen ?? false) Get.back();
+                  Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
                 } else if (permission == LocationPermission.deniedForever) {
-                   Get.back();
-                   _ensureLocationAndFetchData(); // Will trigger permanent dialog
+                  _isLocationDialogOpen = false;
+                  if (Get.isDialogOpen ?? false) Get.back();
+                  Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData); // Will trigger permanent dialog
                 } else {
                   Get.snackbar("Permission Denied", "Please grant location permission",
-                    snackPosition: SnackPosition.BOTTOM, margin: EdgeInsets.all(10));
+                      snackPosition: SnackPosition.BOTTOM, margin: EdgeInsets.all(10));
                 }
               },
               child: Text("Grant"),
@@ -199,10 +238,20 @@ class HomeController extends GetxController {
         ),
       ),
       barrierDismissible: false,
-    );
+    ).then((_) {
+      print("DEBUG: Permission denied dialog closed");
+      _isLocationDialogOpen = false;
+    });
   }
 
   void _showPermissionPermanentDialog() {
+    print("DEBUG: _showPermissionPermanentDialog. _isLocationDialogOpen: $_isLocationDialogOpen");
+    if (_isLocationDialogOpen) return;
+    _isLocationDialogOpen = true;
+
+    // Start background check immediately
+    _startPermissionCheck();
+
     Get.dialog(
       WillPopScope(
         onWillPop: () async => false,
@@ -213,42 +262,49 @@ class HomeController extends GetxController {
             TextButton(
               onPressed: () async {
                 await Geolocator.openAppSettings();
-                // Start checking in background
-                _startPermissionCheck();
               },
               child: Text("Open Settings"),
             ),
             TextButton(
-               onPressed: () async {
-                 LocationPermission permission = await Geolocator.checkPermission();
-                 if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-                   Get.back();
-                   _ensureLocationAndFetchData();
-                 } else {
-                   Get.snackbar("Permission Required", "Please enable location permission from settings",
-                     snackPosition: SnackPosition.BOTTOM, margin: EdgeInsets.all(10));
-                 }
-               },
-               child: Text("Retry"),
+              onPressed: () async {
+                LocationPermission permission = await Geolocator.checkPermission();
+                print("DEBUG: Permission Retry clicked. permission: $permission");
+                if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+                  _isLocationDialogOpen = false;
+                  if (Get.isDialogOpen ?? false) Get.back();
+                  Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
+                } else {
+                  Get.snackbar("Permission Required", "Please enable location permission from settings",
+                      snackPosition: SnackPosition.BOTTOM, margin: EdgeInsets.all(10));
+                }
+              },
+              child: Text("Retry"),
             )
           ],
         ),
       ),
       barrierDismissible: false,
-    );
+    ).then((_) {
+      print("DEBUG: Permanent permission dialog closed");
+      _isLocationDialogOpen = false;
+    });
   }
 
   // Periodically check if permission is granted
   void _startPermissionCheck() {
     Future.delayed(Duration(seconds: 1), () async {
-      if (Get.isDialogOpen ?? false) {
+      if (_isLocationDialogOpen && (Get.isDialogOpen ?? false)) {
         LocationPermission permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-          Get.back(); // Close dialog
-          _ensureLocationAndFetchData();
+          print("DEBUG: Background check: permission granted. Closing dialog.");
+          _isLocationDialogOpen = false;
+          Get.back();
+          Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
         } else {
           _startPermissionCheck(); // Check again
         }
+      } else {
+        print("DEBUG: Permission check stopped. _isLocationDialogOpen: $_isLocationDialogOpen, isDialogOpen: ${Get.isDialogOpen}");
       }
     });
   }
