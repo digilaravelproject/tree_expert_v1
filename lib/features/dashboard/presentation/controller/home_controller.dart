@@ -163,7 +163,7 @@ class HomeController extends GetxController {
                 print("DEBUG: Retry clicked. serviceEnabled: $serviceEnabled");
                 if (serviceEnabled) {
                   _isLocationDialogOpen = false;
-                  if (Get.isDialogOpen ?? false) Get.back();
+                  if (Get.isDialogOpen ?? false) Navigator.pop(Get.overlayContext!);
                   // Add a small delay for OS to update state
                   Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
                 } else {
@@ -191,7 +191,7 @@ class HomeController extends GetxController {
         if (serviceEnabled) {
           print("DEBUG: Background check: service enabled. Closing dialog.");
           _isLocationDialogOpen = false;
-          Get.back();
+          if (Get.isDialogOpen ?? false) Navigator.pop(Get.overlayContext!);
           Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
         } else {
           _startLocationServiceCheck(); // Check again
@@ -221,11 +221,11 @@ class HomeController extends GetxController {
                 print("DEBUG: Permission requested: $permission");
                 if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
                   _isLocationDialogOpen = false;
-                  if (Get.isDialogOpen ?? false) Get.back();
+                  if (Get.isDialogOpen ?? false) Navigator.pop(Get.overlayContext!);
                   Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
                 } else if (permission == LocationPermission.deniedForever) {
                   _isLocationDialogOpen = false;
-                  if (Get.isDialogOpen ?? false) Get.back();
+                  if (Get.isDialogOpen ?? false) Navigator.pop(Get.overlayContext!);
                   Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData); // Will trigger permanent dialog
                 } else {
                   Get.snackbar("Permission Denied", "Please grant location permission",
@@ -271,7 +271,7 @@ class HomeController extends GetxController {
                 print("DEBUG: Permission Retry clicked. permission: $permission");
                 if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
                   _isLocationDialogOpen = false;
-                  if (Get.isDialogOpen ?? false) Get.back();
+                  if (Get.isDialogOpen ?? false) Navigator.pop(Get.overlayContext!);
                   Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
                 } else {
                   Get.snackbar("Permission Required", "Please enable location permission from settings",
@@ -298,7 +298,7 @@ class HomeController extends GetxController {
         if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
           print("DEBUG: Background check: permission granted. Closing dialog.");
           _isLocationDialogOpen = false;
-          Get.back();
+          if (Get.isDialogOpen ?? false) Navigator.pop(Get.overlayContext!);
           Future.delayed(Duration(milliseconds: 500), _ensureLocationAndFetchData);
         } else {
           _startPermissionCheck(); // Check again
