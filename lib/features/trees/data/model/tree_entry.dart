@@ -2,8 +2,11 @@ class TreeEntry {
   String? wardPlotNo;
   String? treeNo;
   String? treeName;
+  String? treeId;
   String? scientificName;
+  String? scientificNameId;
   String? family;
+  String? familyId;
   String? girth;
   String? height;
   String? canopy;
@@ -29,8 +32,11 @@ class TreeEntry {
     this.wardPlotNo,
     this.treeNo,
     this.treeName,
+    this.treeId,
     this.scientificName,
+    this.scientificNameId,
     this.family,
+    this.familyId,
     this.girth,
     this.height,
     this.canopy,
@@ -55,9 +61,12 @@ class TreeEntry {
       'user_id': userId,
       'ward_plot_no': wardPlotNo,
       'tree_no': treeNo,
-      'tree_name': treeName,
-      'scientific_name': scientificName,
-      'family': family,
+      'tree_name': treeId ?? treeName,
+      'tree_id': treeId,
+      'scientific_name': scientificNameId ?? scientificName,
+      'scientific_name_id': scientificNameId,
+      'family': familyId ?? family,
+      'family_name_id': familyId,
       'girth': girth,
       'height': height,
       'canopy': canopy,

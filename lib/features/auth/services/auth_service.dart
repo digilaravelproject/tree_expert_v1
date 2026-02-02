@@ -103,6 +103,9 @@ class AuthService extends GetxService {
             AppConstants.userDataPref,
             jsonEncode(data['user']),
           );
+          if (data['user']['id'] != null) {
+            await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['user']['id'].toString()) ?? 0);
+          }
         }
 
         if (!isNewUser) {
@@ -185,6 +188,9 @@ class AuthService extends GetxService {
             AppConstants.userDataPref,
             jsonEncode(data['data']),
           );
+          if (data['data']['id'] != null) {
+            await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['data']['id'].toString()) ?? 0);
+          }
 
           // Update login state & role
           int roleId = data['data']['role_id'] ?? 0;
@@ -245,6 +251,9 @@ class AuthService extends GetxService {
             AppConstants.userDataPref,
             jsonEncode(data['user']),
           );
+          if (data['user']['id'] != null) {
+            await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['user']['id'].toString()) ?? 0);
+          }
         }
 
         // Check role_id

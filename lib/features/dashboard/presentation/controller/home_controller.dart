@@ -334,6 +334,9 @@ class HomeController extends GetxController {
         final userData = jsonDecode(userDataString);
         userName.value = userData['name'] ?? 'User';
         userEmail.value = userData['email'] ?? '';
+        if (userData['id'] != null) {
+          userId.value = int.tryParse(userData['id'].toString()) ?? 0;
+        }
       }
 
       if (userIdValue != null) {

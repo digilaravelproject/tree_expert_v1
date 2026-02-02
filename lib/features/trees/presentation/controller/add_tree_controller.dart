@@ -34,6 +34,11 @@ class AddTreeController extends GetxController {
   final latitudeController = TextEditingController();
   final longitudeController = TextEditingController();
   final accuracyController = TextEditingController();
+  
+  // Selected IDs for Tree selection
+  String? selectedTreeId;
+  String? selectedScientificNameId;
+  String? selectedFamilyId;
 
   // Observables
   final RxString selectedUnit = 'Meter'.obs; // Meter or Feet
@@ -42,6 +47,7 @@ class AddTreeController extends GetxController {
   final RxString selectedOwnership = 'Pvt'.obs;
   final RxList<String> capturedPhotos = <String>[].obs; // Multiple photos with paths
   final RxBool isLoading = false.obs;
+  final RxBool isFetchingDetails = false.obs;
   final RxInt currentTreeNo = 1.obs;
   final RxMap<String, dynamic> fieldRequirements = <String, dynamic>{}.obs;
   
@@ -214,10 +220,42 @@ class AddTreeController extends GetxController {
     }
   }
 
-  void selectTree(TreeModel tree) {
+  Future<void> selectTree(TreeModel tree) async {
+    // 1. Initial UI update from the list item
     treeNameController.text = tree.commonName;
     scientificNameController.text = tree.scientificName;
     familyController.text = tree.family;
+    
+    selectedTreeId = tree.id.toString();
+    selectedScientificNameId = tree.scientificNameId?.toString();
+    selectedFamilyId = tree.familyNameId?.toString();
+    
+    print("DEBUG: Selected Tree Initial ID: $selectedTreeId");
+
+    // 2. Fetch full details to get scientific_name_id and family_name_id
+    try {
+      isFetchingDetails.value = true;
+      final response = await _treesRepository.getTreeDetails(tree.id);
+      if (response.success && response.data != null) {
+        final details = response.data!;
+        
+        // Update all IDs from the details API
+        selectedTreeId = details.id.toString();
+        selectedScientificNameId = details.scientificNameId?.toString();
+        selectedFamilyId = details.familyNameId?.toString();
+        
+        // Refresh text fields just in case they differ
+        treeNameController.text = details.commonName;
+        scientificNameController.text = details.scientificName;
+        familyController.text = details.family;
+
+        print("DEBUG: Fetched Full Details - ID: $selectedTreeId, Sci ID: $selectedScientificNameId, Family ID: $selectedFamilyId");
+      }
+    } catch (e) {
+      print("Error fetching tree details: $e");
+    } finally {
+      isFetchingDetails.value = false;
+    }
   }
 
   Future<void> capturePhoto() async {
@@ -306,6 +344,12 @@ class AddTreeController extends GetxController {
   }
 
   bool _validateCurrentForm() {
+    if (isFetchingDetails.value) {
+       Get.snackbar("Wait", "Fetching tree details, please wait...", 
+          snackPosition: SnackPosition.BOTTOM);
+       return false;
+    }
+    
     // 1. Always required (System requirement)
     if (treeNameController.text.trim().isEmpty) {
       Get.snackbar("Required", "Tree name is required", 
@@ -399,12 +443,17 @@ class AddTreeController extends GetxController {
   }
 
   void _saveCurrentTreeToLocal() {
+     _fetchUserId();
+     
      final entry = TreeEntry(
        wardPlotNo: wardPlotNoController.text,
        treeNo: treeNoController.text,
        treeName: treeNameController.text,
+       treeId: selectedTreeId,
        scientificName: scientificNameController.text,
+       scientificNameId: selectedScientificNameId,
        family: familyController.text,
+       familyId: selectedFamilyId,
        girth: girthController.text,
        height: heightController.text,
        canopy: canopyController.text,
@@ -438,8 +487,11 @@ class AddTreeController extends GetxController {
       wardPlotNoController.text = entry.wardPlotNo ?? '';
       treeNoController.text = entry.treeNo ?? '';
       treeNameController.text = entry.treeName ?? '';
+      selectedTreeId = entry.treeId;
       scientificNameController.text = entry.scientificName ?? '';
+      selectedScientificNameId = entry.scientificNameId;
       familyController.text = entry.family ?? '';
+      selectedFamilyId = entry.familyId;
       girthController.text = entry.girth ?? '';
       heightController.text = entry.height ?? '';
       canopyController.text = entry.canopy ?? '';
@@ -468,8 +520,11 @@ class AddTreeController extends GetxController {
     treeNoController.text = "T-$nextNo";
     
     treeNameController.clear();
+    selectedTreeId = null;
     scientificNameController.clear();
+    selectedScientificNameId = null;
     familyController.clear();
+    selectedFamilyId = null;
     girthController.clear();
     heightController.clear();
     canopyController.clear();
@@ -490,8 +545,13 @@ class AddTreeController extends GetxController {
     if (!_validateCurrentForm()) {
       return; 
     }
+
+
+
     
     _saveCurrentTreeToLocal();
+
+
 
     if (localTrees.isEmpty) {
       Get.snackbar("Error", "No trees to submit");
@@ -515,7 +575,10 @@ class AddTreeController extends GetxController {
 
     final List<Map<String, dynamic>> treesData = localTrees.map((e) => e.toJson()).toList();
     // Note: If photos need upload, handle here loop or Multipart
-    
+
+    print("treeData: $treesData");
+
+    // return ;
     final response = await _treesRepository.submitTrees(treesData);
 
     isLoading.value = false;

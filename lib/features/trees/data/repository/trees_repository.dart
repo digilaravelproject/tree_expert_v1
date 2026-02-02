@@ -37,6 +37,22 @@ class TreesRepository {
 
   }
   
+  Future<ApiResponse<TreeModel>> getTreeDetails(int id) async {
+    try {
+      final response = await _apiClient.get("${ApiConstants.treeDetails}/$id");
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // API returns {id, name, scientific_name_id, scientific_name, family_name_id, family_name}
+        return ApiResponse.success(TreeModel.fromJson(data));
+      } else {
+        return ApiResponse.error('Failed to load tree details');
+      }
+    } catch (e) {
+      return ApiResponse.error('Error loading tree details: $e');
+    }
+  }
+  
   Future<ApiResponse<List<TreeModel>>> getTreesByProject(String projectId) async {
     try {
       final response = await _apiClient.get("${ApiConstants.treeInProject}/$projectId");

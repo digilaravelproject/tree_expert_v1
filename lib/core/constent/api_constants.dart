@@ -36,6 +36,7 @@ class ApiConstants {
     static const String updateProject = "customer/projects";
 
     static const String treeList = "tree-list";
+    static const String treeDetails = "tree"; // tree/{id}
     static const String treeMeasure = "tree/measure";
     static const String saveTrees = "trees-add";
     static const String treeInProject = "tree_in_project";
