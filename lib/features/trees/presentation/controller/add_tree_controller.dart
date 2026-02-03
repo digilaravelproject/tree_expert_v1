@@ -50,6 +50,7 @@ class AddTreeController extends GetxController {
   final RxBool isFetchingDetails = false.obs;
   final RxInt currentTreeNo = 1.obs;
   final RxMap<String, dynamic> fieldRequirements = <String, dynamic>{}.obs;
+  final RxBool isAddMultiple = false.obs;
   
   // IDs
   String? projectId;
@@ -540,19 +541,40 @@ class AddTreeController extends GetxController {
     _captureGPSLocation();
   }
 
-  Future<void> submitAllTrees() async {
-    // Ensure current form is valid and saved
-    if (!_validateCurrentForm()) {
+  Future<void> handleSubmit() async {
+    // 1. Validate the current form first
+     if (!_validateCurrentForm()) {
       return; 
     }
 
-
-
-    
+    // 2. Save current form logic first
     _saveCurrentTreeToLocal();
 
+    // 3. Check if multiple add is enabled
+    if (isAddMultiple.value) {
+      // Logic for adding to local array and resetting
+      Get.snackbar(
+        "Added", 
+        "Tree saved to list. You can add more.", 
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: Duration(seconds: 1)
+      );
+      
+      // Move index forward
+      currentTreeIndex.value++;
+      
+      // Reset for next
+      _resetFormForNext();
+      
+    } else {
+      // Logic for submitting everything
+      await submitAllStoredTrees();
+    }
+  }
 
-
+  Future<void> submitAllStoredTrees() async {
     if (localTrees.isEmpty) {
       Get.snackbar("Error", "No trees to submit");
       return;
@@ -564,7 +586,7 @@ class AddTreeController extends GetxController {
         content: Text("Submit ${localTrees.length} ${localTrees.length == 1 ? 'tree' : 'trees'}?"),
         actions: [
           TextButton(onPressed: () => Get.back(result: false), child: Text("No")),
-          ElevatedButton(onPressed: () => Get.back(result: true), child: Text("Yes")),
+          ElevatedButton(onPressed: () => Get.back(result: true), child: Text("Yes, Submit")),
         ],
       ),
     );

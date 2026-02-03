@@ -31,6 +31,9 @@ class ApiConstants {
     static const String privacyPolicy = "privacy-policy";
     static const String getStates = "states";
     static const String projectList = "project/list";
+    static const String projectAssignOfficer = "project_assign_officer";
+    static const String faqs = "faqs";
+    static const String videos = "videos";
 
     static const String createProject = "customer/create-project";
     static const String updateProject = "customer/projects";

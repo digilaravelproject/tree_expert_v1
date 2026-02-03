@@ -5,6 +5,7 @@ import 'package:tree_expert/core/routes/app_routes.dart';
 import 'package:tree_expert/features/auth/services/auth_service.dart';
 import '../../../projects/data/model/project_list_model.dart';
 import 'download_options_bottom_sheet.dart';
+import 'tree_selection_bottom_sheet.dart';
 
 class ApiProjectCard extends StatelessWidget {
   final ProjectListModel project;
@@ -198,28 +199,42 @@ class ApiProjectCard extends StatelessWidget {
                     ),
                   ],
                   if (project.treesCount > 0) ...[
-                    _buildActionButton(
-                      context,
-                      icon: Icons.download_outlined,
-                      label: "Download",
-                      color: Colors.green,
-                      onTap: () {
-                        // Show download options bottom sheet
-                        Get.bottomSheet(
-                          DownloadOptionsBottomSheet(
-                            projectName: project.projectName,
-                            projectId: project.id,
-                          ),
-                          isScrollControlled: true,
-                        );
-                      },
-                    ),
+                      _buildActionButton(
+                        context,
+                        icon: Icons.download_outlined,
+                        label: "Download",
+                        color: Colors.green,
+                        onTap: () {
+                          if(isCompany){
+                            Get.bottomSheet(
+                              DownloadOptionsBottomSheet(
+                                projectName: project.projectName,
+                                projectId: project.id,
+                              ),
+                              isScrollControlled: true,
+                            );
+                          }
+                          else{
+                            // Show tree selection & payment bottom sheet first
+                            Get.bottomSheet(
+                              TreeSelectionBottomSheet(
+                                projectName: project.projectName,
+                                projectId: project.id,
+                                treesCount: project.treesCount,
+                              ),
+                              isScrollControlled: true,
+                            );
+                          }
+
+                        },
+                      ),
                     Container(
                       width: 1,
                       height: 30,
                       color: Colors.grey.shade200,
                     ),
                   ],
+
                   _buildActionButton(
                     context,
                     icon: Icons.add_circle_outline,

@@ -153,8 +153,9 @@ class ProfilePage extends GetWidget<ProfileController> {
                     context,
                     icon: Icons.notifications_none,
                     title: "Notification",
-                    subtitle: "Coming Soon",
-                    onTap: () => Get.snackbar("Coming Soon", "Notification feature will be available soon!"),
+                  //  subtitle: "Coming Soon",
+                    onTap: () => Get.toNamed(AppRoutes.notification)
+                        //Get.snackbar("Coming Soon", "Notification feature will be available soon!"),
                   ),
                   
                   Divider(height: 32),
@@ -176,14 +177,14 @@ class ProfilePage extends GetWidget<ProfileController> {
                     context,
                     icon: Icons.help_outline,
                     title: "FAQ",
-                    subtitle: "Coming Soon",
+                   // subtitle: "Coming Soon",
                     onTap: () => Get.toNamed(AppRoutes.faq),
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.play_circle_outline,
                     title: "Video Tutorial",
-                    subtitle: "Coming Soon",
+                  //  subtitle: "Coming Soon",
                     onTap: () => Get.toNamed(AppRoutes.videoTutorial),
                   ),
                   

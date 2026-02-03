@@ -10,7 +10,6 @@ class TreeModel {
   final String? imageUrl;
   final String? girth;
   final String? height;
-
   final String? ownership;
   final String? latitude;
   final String? longitude;

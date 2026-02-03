@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 import '../../../../core/constent/api_constants.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_response.dart';
+import '../model/faq_model.dart';
 import '../model/user_profile_data.dart';
 import '../model/contact_model.dart';
 import '../model/note_model.dart';
 import '../model/privacy_policy_model.dart';
+import '../model/video_tutorial_model.dart';
 
 class ProfileRepository {
   final ApiClient _apiClient = Get.find<ApiClient>();
@@ -127,4 +129,59 @@ class ProfileRepository {
       return ApiResponse.error(e.toString(), error: e);
     }
   }
+
+
+  /// Get FAQs
+  Future<ApiResponse<List<FaqModel>>> getFaqs() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.faqs);
+
+      if (response.statusCode == 200 && response.data['status'] == true) {
+        List<FaqModel> faqs = (response.data['faqs'] as List)
+            .map((e) => FaqModel.fromJson(e))
+            .toList();
+
+        return ApiResponse.success(
+          faqs,
+          message: "FAQs fetched successfully",
+        );
+      } else {
+        return ApiResponse.error(
+          "Failed to fetch FAQs",
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+
+
+  /// Get Videos
+  Future<ApiResponse<List<VideoModel>>> getVideos() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.videos);
+
+      if (response.statusCode == 200 && response.data['status'] == true) {
+        List<VideoModel> videos = (response.data['videos'] as List)
+            .map((e) => VideoModel.fromJson(e))
+            .toList();
+
+        return ApiResponse.success(
+          videos,
+          message: "Videos fetched successfully",
+        );
+      } else {
+        return ApiResponse.error(
+          "Failed to fetch videos",
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+
 }
