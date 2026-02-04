@@ -4,6 +4,7 @@ import 'package:tree_expert/features/trees/data/model/tree_model.dart';
 import 'package:tree_expert/features/trees/data/repository/trees_repository.dart';
 import '../../../../core/constent/app_constants.dart';
 import '../../../../core/storage/shared_prefs.dart';
+import '../../../auth/services/auth_service.dart';
 import '../../../razorpay/payment_repository.dart';
 import '../../../razorpay/razorpay_controller.dart';
 import 'download_options_bottom_sheet.dart';
@@ -112,8 +113,11 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     return _selectedUnpaidTreeCount * widget.activeTreePrice;
   }
 
-  // Check if all selected trees are already paid
+  // Check if all selected trees are already paid OR if it's company login
   bool get _allSelectedTreesPaid {
+    final bool isCompany = Get.find<AuthService>().isCompanyLogin.value;
+    if (isCompany) return true; // Company can access everything without payment
+    
     return _selectedTrees.isNotEmpty && _selectedTrees.every((t) => t.payment == 1);
   }
 
@@ -434,7 +438,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
           // Action Buttons
           if (_selectedFromCount != null && _selectedToCount != null) ...[
             if (_allSelectedTreesPaid) ...[
-              // All selected trees are paid - show View button
+              // All selected trees are paid OR company login - show View button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -449,6 +453,34 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                   ),
                 ),
               ),
+              // Show company access message if applicable
+              if (Get.find<AuthService>().isCompanyLogin.value) ...[
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade100)
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.business, color: Colors.blue.shade700, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Company Access: No payment required",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ] else ...[
               // Some trees are unpaid - show payment info and buttons
               Container(

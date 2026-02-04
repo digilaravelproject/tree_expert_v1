@@ -206,16 +206,16 @@ class ApiProjectCard extends StatelessWidget {
                         label: "Download",
                         color: Colors.green,
                         onTap: () {
-                          if(isCompany){
-                            Get.bottomSheet(
-                              DownloadOptionsBottomSheet(
-                                projectName: project.projectName,
-                                projectId: project.id,
-                              ),
-                              isScrollControlled: true,
-                            );
-                          }
-                          else{
+                          // if(isCompany){
+                          //   Get.bottomSheet(
+                          //     DownloadOptionsBottomSheet(
+                          //       projectName: project.projectName,
+                          //       projectId: project.id,
+                          //     ),
+                          //     isScrollControlled: true,
+                          //   );
+                          // }
+                          // else{
                             // Show tree selection & payment bottom sheet first
                             final homeController = Get.find<HomeController>();
                             Get.bottomSheet(
@@ -227,7 +227,7 @@ class ApiProjectCard extends StatelessWidget {
                               ),
                               isScrollControlled: true,
                             );
-                          }
+                         // }
 
                         },
                       ),
