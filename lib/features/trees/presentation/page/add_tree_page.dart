@@ -974,7 +974,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
 
                 final trees = controller.trees.where((tree) {
                   final query = searchQuery.value.toLowerCase();
-                  return tree.commonName.toLowerCase().contains(query) ||
+                  return tree.treeName.toLowerCase().contains(query) ||
                       tree.scientificName.toLowerCase().contains(query);
                 }).toList();
 
@@ -991,7 +991,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                     final tree = trees[index];
                     return ListTile(
                       title: Text(
-                        tree.commonName,
+                        tree.treeName,
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(

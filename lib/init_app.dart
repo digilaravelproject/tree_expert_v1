@@ -5,10 +5,21 @@ import 'core/network/api_client.dart';
 import 'core/storage/shared_prefs.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/location/location_manager.dart';
+import 'features/razorpay/payment_repository.dart';
+import 'features/razorpay/razorpay_controller.dart';
 
 Future<void> initApp() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+  Get.put<ApiClient>(ApiClient(), permanent: true);
+  Get.put<PaymentRepository>(PaymentRepository(), permanent: true);
+  Get.put<RazorpayController>(RazorpayController(), permanent: true);
+
+
+
+
+
+
 
   // Initialize SharedPreferences
   await SharedPrefs.init();

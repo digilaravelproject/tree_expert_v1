@@ -53,5 +53,12 @@
 
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>This app needs access to location to provide better service.</string>
+
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+
 </dict>
 </plist>

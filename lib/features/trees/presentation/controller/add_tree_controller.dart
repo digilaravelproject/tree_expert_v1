@@ -103,6 +103,10 @@ class AddTreeController extends GetxController {
     // Listen to girth changes for auto-calculation
     girthController.addListener(_onGirthChanged);
 
+    // Debug listener for tree name controller
+    treeNameController.addListener(() {
+      print("DEBUG: TreeNameController changed to: '${treeNameController.text}'");
+    });
 
     // Listen to location updates
     ever(locationManager.currentPosition, (Position? position) {
@@ -222,50 +226,81 @@ class AddTreeController extends GetxController {
   }
 
   Future<void> selectTree(TreeModel tree) async {
-    // 1. Initial UI update from the list item
-    treeNameController.text = tree.commonName;
-    scientificNameController.text = tree.scientificName;
-    familyController.text = tree.family;
+    print("DEBUG: Selecting tree: ${tree.treeName}");
+    
+    // Store the values to prevent any accidental clearing
+    final treeName = tree.treeName;
+    final scientificName = tree.scientificName;
+    final family = tree.family;
+    
+    // 1. Set the text fields immediately
+    treeNameController.text = treeName;
+    scientificNameController.text = scientificName;
+    familyController.text = family;
     
     selectedTreeId = tree.id.toString();
-    selectedScientificNameId = tree.scientificNameId?.toString();
-    selectedFamilyId = tree.familyNameId?.toString();
+    selectedScientificNameId = scientificName?.toString();
+    selectedFamilyId = family?.toString();
     
-    print("DEBUG: Selected Tree Initial ID: $selectedTreeId");
-
-    // 2. Fetch full details to get scientific_name_id and family_name_id
+    print("DEBUG: Set text fields - Tree: '${treeNameController.text}', Scientific: '${scientificNameController.text}', Family: '${familyController.text}'");
+    
+    // Force update the UI
+    update();
+    
+    // 2. Try to fetch full details in background (optional)
     try {
       isFetchingDetails.value = true;
       final response = await _treesRepository.getTreeDetails(tree.id);
       if (response.success && response.data != null) {
         final details = response.data!;
         
-        // Update all IDs from the details API
+        // Update only the IDs, keep text fields as they are
         selectedTreeId = details.id.toString();
-        selectedScientificNameId = details.scientificNameId?.toString();
-        selectedFamilyId = details.familyNameId?.toString();
-        
-        // Refresh text fields just in case they differ
-        treeNameController.text = details.commonName;
-        scientificNameController.text = details.scientificName;
-        familyController.text = details.family;
+        selectedScientificNameId = details.scientificName?.toString();
+        selectedFamilyId = details.family?.toString();
 
-        print("DEBUG: Fetched Full Details - ID: $selectedTreeId, Sci ID: $selectedScientificNameId, Family ID: $selectedFamilyId");
+        print("DEBUG: Updated IDs from API - ID: $selectedTreeId");
+        
+        // Ensure text fields are still set (defensive programming)
+        if (treeNameController.text.isEmpty) {
+          treeNameController.text = treeName;
+          print("DEBUG: Restored tree name field");
+        }
+        if (scientificNameController.text.isEmpty) {
+          scientificNameController.text = scientificName;
+          print("DEBUG: Restored scientific name field");
+        }
+        if (familyController.text.isEmpty) {
+          familyController.text = family;
+          print("DEBUG: Restored family field");
+        }
       }
     } catch (e) {
       print("Error fetching tree details: $e");
+      // Ensure text fields are still set even if API fails
+      treeNameController.text = treeName;
+      scientificNameController.text = scientificName;
+      familyController.text = family;
+      print("DEBUG: Restored all fields after API error");
     } finally {
       isFetchingDetails.value = false;
     }
+    
+    print("DEBUG: Final check - Tree: '${treeNameController.text}', Scientific: '${scientificNameController.text}', Family: '${familyController.text}'");
   }
 
   Future<void> capturePhoto() async {
     print("[AddTree] Navigating to geo camera with saveToGallery=false");
     // Navigate to geo-tag camera page with saveToGallery: false
+    // Also pass projectId and treeNo to display on camera overlay
     final result = await Get.to(
       () => const GeoTagCameraPage(),
       binding: GeoCameraBinding(),
-      arguments: {'saveToGallery': false},
+      arguments: {
+        'saveToGallery': false,
+        'projectNo': projectId ?? '',
+        'treeNo': treeNoController.text,
+      },
     );
     
     print("[AddTree] Returned from geo camera. Result: $result");
@@ -520,12 +555,15 @@ class AddTreeController extends GetxController {
     currentTreeNo.value = nextNo; 
     treeNoController.text = "T-$nextNo";
     
-    treeNameController.clear();
-    selectedTreeId = null;
-    scientificNameController.clear();
-    selectedScientificNameId = null;
-    familyController.clear();
-    selectedFamilyId = null;
+    // Keep tree selection for multiple add - don't clear tree-related fields
+    // treeNameController.clear(); // Keep tree name
+    // selectedTreeId = null; // Keep selected tree ID
+    // scientificNameController.clear(); // Keep scientific name
+    // selectedScientificNameId = null; // Keep scientific name ID
+    // familyController.clear(); // Keep family
+    // selectedFamilyId = null; // Keep family ID
+    
+    // Clear measurement fields for new tree
     girthController.clear();
     heightController.clear();
     canopyController.clear();

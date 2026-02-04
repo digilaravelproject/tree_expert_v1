@@ -26,6 +26,7 @@
         android:label="Tree Expert"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
         android:roundIcon="@mipmap/ic_launcher_round">
         
         <!-- Google Maps API Key -->

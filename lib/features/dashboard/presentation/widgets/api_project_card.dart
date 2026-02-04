@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
 import 'package:tree_expert/features/auth/services/auth_service.dart';
 import '../../../projects/data/model/project_list_model.dart';
+import '../controller/home_controller.dart';
 import 'download_options_bottom_sheet.dart';
 import 'tree_selection_bottom_sheet.dart';
 
@@ -216,11 +217,13 @@ class ApiProjectCard extends StatelessWidget {
                           }
                           else{
                             // Show tree selection & payment bottom sheet first
+                            final homeController = Get.find<HomeController>();
                             Get.bottomSheet(
                               TreeSelectionBottomSheet(
                                 projectName: project.projectName,
                                 projectId: project.id,
                                 treesCount: project.treesCount,
+                                activeTreePrice: homeController.activeTreePrice.value,
                               ),
                               isScrollControlled: true,
                             );

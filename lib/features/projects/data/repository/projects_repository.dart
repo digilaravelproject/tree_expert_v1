@@ -82,6 +82,12 @@ class ProjectsRepository {
               .map((json) => ProjectListModel.fromJson(json))
               .toList();
 
+          // Store active_tree_price if available
+          if (data['active_tree_price'] != null) {
+            final priceString = data['active_tree_price'].toString();
+            SharedPrefs.setString('active_tree_price', priceString);
+          }
+
           return ApiResponse.success(
             projects,
             message: data['message'] ?? 'Projects fetched successfully',
@@ -241,11 +247,18 @@ class ProjectsRepository {
   }
 
   /// Get Project Export Links
-  Future<ApiResponse<Map<String, dynamic>>> getProjectExportLinks(String projectId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getProjectExportLinks(String projectId, {List<int>? treeIds}) async {
     try {
+      final Map<String, dynamic> requestData = {'project_id': projectId};
+      
+      // Add tree_ids if provided
+      if (treeIds != null && treeIds.isNotEmpty) {
+        requestData['tree_ids'] = treeIds;
+      }
+
       final response = await _apiClient.post(
         ApiConstants.getProjectExportLinks,
-        data: {'project_id': projectId},
+        data: requestData,
       );
 
       if (response.statusCode == 200) {

@@ -46,7 +46,9 @@ class ApiConstants {
     static const String getProjectExportLinks = "get_project_export_links";
 
 
-
+    // Payment
+    static const String createPaymentOrder = "payment/create-order";
+    static const String paymentVerify = "payment/verify";
 
 
 }

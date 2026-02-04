@@ -145,9 +145,9 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
         child: Stack(
           children: [
             // Background Image
-            if (tree.imageUrl != null && tree.imageUrl!.isNotEmpty)
+            if (tree.capturedImage != null && tree.capturedImage!.isNotEmpty)
               CustomImageView(
-                url: tree.imageUrl,
+                url: tree.capturedImage,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
@@ -232,7 +232,7 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        tree.commonName,
+                        tree.treeName,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -308,8 +308,8 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
                          color: Colors.grey.shade200,
                        ),
                        clipBehavior: Clip.hardEdge,
-                       child: (tree.imageUrl != null && tree.imageUrl!.isNotEmpty)
-                        ? CustomImageView(url: tree.imageUrl, fit: BoxFit.cover)
+                       child: (tree.capturedImage != null && tree.capturedImage!.isNotEmpty)
+                        ? CustomImageView(url: tree.capturedImage, fit: BoxFit.cover)
                         : Icon(Icons.park, size: 80, color: Colors.grey.shade400),
                      ),
                      SizedBox(height: 20),
@@ -324,7 +324,7 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
                              crossAxisAlignment: CrossAxisAlignment.start,
                              children: [
                                Text(
-                                 tree.commonName,
+                                 tree.treeName,
                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                                ),
                                if (tree.scientificName.isNotEmpty)
