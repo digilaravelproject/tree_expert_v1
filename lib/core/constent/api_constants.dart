@@ -15,8 +15,9 @@ class ApiConstants {
 
     static const String loginEmailWithPassward = "login";
     static const String logout = "logout";
-    static const String userProfile = "users"; // users/{id}
+    static const String getSingleUserData = "users"; // users/{id}
     static const String uploadProfileImage = "upload-profile-image";
+    static const String updateProfileData = "upload-profile-image";
     static const String getTreeRequirements = "get_tree_requirements";
 
     // Password Reset Endpoints
@@ -34,6 +35,7 @@ class ApiConstants {
     static const String projectAssignOfficer = "project_assign_officer";
     static const String faqs = "faqs";
     static const String videos = "videos";
+    static const String userSubscriptions = "user-subscriptions";
 
     static const String createProject = "customer/create-project";
     static const String updateProject = "customer/projects";

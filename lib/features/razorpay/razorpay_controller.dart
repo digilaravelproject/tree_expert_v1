@@ -111,12 +111,11 @@ class RazorpayController extends GetxController {
 
 
 
-import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:tree_expert/features/razorpay/payment_repository.dart';
+import '../../widgets/payment_success_dialog.dart';
 
 class RazorpayController extends GetxController {
   late Razorpay _razorpay;
@@ -197,13 +196,6 @@ class RazorpayController extends GetxController {
 
   /// ✅ SUCCESS
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    Get.snackbar(
-      'Payment Success',
-      'Payment ID: ${response.paymentId}',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
-
     print("_handlePaymentSuccess: ${response.paymentId}, Signature: ${response.signature}");
 
     if (_pendingVerification != null) {
@@ -234,13 +226,17 @@ class RazorpayController extends GetxController {
       );
 
       if (res.success) {
-        // success UI / navigation
+        // Show success dialog instead of snackbar
         print("response for verify : "+response.toString());
-        Get.snackbar(
-          'Payment Verified',
-          'Your payment has been successfully verified.',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
+        
+        PaymentSuccessDialog.show(
+          amount: _pendingVerification!['amount'].toString(),
+          paymentId: response.paymentId ?? '',
+          treeCount: List<int>.from(_pendingVerification!['tree_ids']).length,
+          onOkPressed: () {
+            // Optional: Navigate back or refresh data
+            print("Payment success dialog OK pressed");
+          },
         );
       } else {
         // error toast

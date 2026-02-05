@@ -55,6 +55,8 @@ class AddTreeController extends GetxController {
   // IDs
   String? projectId;
   String? userId;
+  int? projectLimit; // Maximum trees allowed for this project
+  int currentTreesCount = 0; // Current trees in project
 
   final RxList<TreeModel> trees = <TreeModel>[].obs;
   final RxBool isLoadingTrees = false.obs;
@@ -66,6 +68,25 @@ class AddTreeController extends GetxController {
   // Local storage for multi-tree flow
   final RxList<TreeEntry> localTrees = <TreeEntry>[].obs;
   final RxInt currentTreeIndex = 0.obs; // 0-indexed for array, displayed as 1-indexed
+
+  // Add these variables to track subscriptions
+  Worker? _positionWorker;
+  Worker? _addressWorker;
+  bool _isDisposed = false;
+
+  // Check if user can add more trees
+  bool get canAddMoreTrees {
+    if (projectLimit == null) return true; // No limit set
+    int totalTreesAfterCurrent = currentTreesCount + localTrees.length + 1; // +1 for current tree being added
+    return totalTreesAfterCurrent < projectLimit!;
+  }
+
+  // Check if multiple add should be available
+  bool get canAddMultipleTrees {
+    if (projectLimit == null) return true; // No limit set
+    int totalTreesAfterCurrent = currentTreesCount + localTrees.length + 1; // +1 for current tree
+    return totalTreesAfterCurrent < projectLimit!; // Can add more than just the current one
+  }
 
   final List<String> conditions = [
     'Poor',
@@ -108,16 +129,16 @@ class AddTreeController extends GetxController {
       print("DEBUG: TreeNameController changed to: '${treeNameController.text}'");
     });
 
-    // Listen to location updates
-    ever(locationManager.currentPosition, (Position? position) {
-      if (position != null) {
+    // Listen to location updates with proper disposal tracking
+    _positionWorker = ever(locationManager.currentPosition, (Position? position) {
+      if (!_isDisposed && position != null) {
         _updateLocationFields(position);
       }
     });
 
-    // Listen to address updates
-    ever(locationManager.currentAddress, (String address) {
-      if (address.isNotEmpty) {
+    // Listen to address updates with proper disposal tracking
+    _addressWorker = ever(locationManager.currentAddress, (String address) {
+      if (!_isDisposed && address.isNotEmpty) {
         addressController.text = address;
       }
     });
@@ -161,6 +182,10 @@ class AddTreeController extends GetxController {
       }
       if (args.containsKey('treesCount')) {
          baseTreeCount = int.tryParse(args['treesCount'].toString()) ?? 0;
+         currentTreesCount = baseTreeCount;
+      }
+      if (args.containsKey('limit')) {
+         projectLimit = int.tryParse(args['limit'].toString());
       }
       
       // Initial Tree No = base + 1 + currentIndex
@@ -174,9 +199,16 @@ class AddTreeController extends GetxController {
   }
 
   void _updateLocationFields(Position position) {
-    latitudeController.text = position.latitude.toStringAsFixed(6);
-    longitudeController.text = position.longitude.toStringAsFixed(6);
-    accuracyController.text = "${position.accuracy.toStringAsFixed(1)}m";
+    // Add null checks to prevent using disposed controllers
+    if (_isDisposed) return;
+    
+    try {
+      latitudeController.text = position.latitude.toStringAsFixed(6);
+      longitudeController.text = position.longitude.toStringAsFixed(6);
+      accuracyController.text = "${position.accuracy.toStringAsFixed(1)}m";
+    } catch (e) {
+      print("Error updating location fields: $e");
+    }
   }
 
   // Initial fetch called in _initializeForm
@@ -238,11 +270,13 @@ class AddTreeController extends GetxController {
     scientificNameController.text = scientificName;
     familyController.text = family;
     
+    // Store the IDs properly
     selectedTreeId = tree.id.toString();
-    selectedScientificNameId = scientificName?.toString();
-    selectedFamilyId = family?.toString();
+    selectedScientificNameId = tree.scientificNameId?.toString();
+    selectedFamilyId = tree.familyNameId?.toString();
     
     print("DEBUG: Set text fields - Tree: '${treeNameController.text}', Scientific: '${scientificNameController.text}', Family: '${familyController.text}'");
+    print("DEBUG: Set IDs - TreeID: '$selectedTreeId', ScientificID: '$selectedScientificNameId', FamilyID: '$selectedFamilyId'");
     
     // Force update the UI
     update();
@@ -254,12 +288,16 @@ class AddTreeController extends GetxController {
       if (response.success && response.data != null) {
         final details = response.data!;
         
-        // Update only the IDs, keep text fields as they are
+        // Update IDs from API response if available
         selectedTreeId = details.id.toString();
-        selectedScientificNameId = details.scientificName?.toString();
-        selectedFamilyId = details.family?.toString();
+        if (details.scientificNameId != null) {
+          selectedScientificNameId = details.scientificNameId.toString();
+        }
+        if (details.familyNameId != null) {
+          selectedFamilyId = details.familyNameId.toString();
+        }
 
-        print("DEBUG: Updated IDs from API - ID: $selectedTreeId");
+        print("DEBUG: Updated IDs from API - TreeID: $selectedTreeId, ScientificID: $selectedScientificNameId, FamilyID: $selectedFamilyId");
         
         // Ensure text fields are still set (defensive programming)
         if (treeNameController.text.isEmpty) {
@@ -287,6 +325,7 @@ class AddTreeController extends GetxController {
     }
     
     print("DEBUG: Final check - Tree: '${treeNameController.text}', Scientific: '${scientificNameController.text}', Family: '${familyController.text}'");
+    print("DEBUG: Final IDs - TreeID: '$selectedTreeId', ScientificID: '$selectedScientificNameId', FamilyID: '$selectedFamilyId'");
   }
 
   Future<void> capturePhoto() async {
@@ -585,10 +624,22 @@ class AddTreeController extends GetxController {
       return; 
     }
 
-    // 2. Save current form logic first
+    // 2. Check if adding this tree would exceed the limit
+    if (!canAddMoreTrees) {
+      Get.snackbar(
+        "Limit Reached", 
+        "Cannot add more trees. Project limit: ${projectLimit ?? 'unlimited'}", 
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // 3. Save current form logic first
     _saveCurrentTreeToLocal();
 
-    // 3. Check if multiple add is enabled
+    // 4. Check if multiple add is enabled
     if (isAddMultiple.value) {
       // Logic for adding to local array and resetting
       Get.snackbar(
@@ -605,6 +656,9 @@ class AddTreeController extends GetxController {
       
       // Reset for next
       _resetFormForNext();
+      
+      // IMPORTANT: Uncheck the multiple add checkbox after adding one tree
+      isAddMultiple.value = false;
       
     } else {
       // Logic for submitting everything
@@ -633,43 +687,62 @@ class AddTreeController extends GetxController {
 
     isLoading.value = true;
 
-    final List<Map<String, dynamic>> treesData = localTrees.map((e) => e.toJson()).toList();
-    // Note: If photos need upload, handle here loop or Multipart
+    try {
+      // Convert all trees to JSON with base64 images
+      final List<Map<String, dynamic>> treesData = [];
+      for (TreeEntry entry in localTrees) {
+        final jsonData = await entry.toJson();
+        treesData.add(jsonData);
+      }
 
-    print("treeData: $treesData");
+      print("treeData with base64 images: $treesData");
 
-    // return ;
-    final response = await _treesRepository.submitTrees(treesData);
+      final response = await _treesRepository.submitTrees(treesData);
 
-    isLoading.value = false;
+      isLoading.value = false;
 
-    if (response.success) {
-      Get.snackbar("Success", "All trees submitted successfully!");
-      
-      try {
-        if (Get.isRegistered<HomeController>()) {
-          Get.find<HomeController>().fetchProjects();
+      if (response.success) {
+        Get.snackbar("Success", "All trees submitted successfully!");
+        
+        try {
+          if (Get.isRegistered<HomeController>()) {
+            Get.find<HomeController>().fetchProjects();
+          }
+        } catch (e) {
+          print("Error refreshing projects: $e");
         }
-      } catch (e) {
-        print("Error refreshing projects: $e");
-      }
-      
-      FocusManager.instance.primaryFocus?.unfocus();
-      await Future.delayed(Duration(milliseconds: 300));
+        
+        FocusManager.instance.primaryFocus?.unfocus();
+        await Future.delayed(Duration(milliseconds: 300));
 
-      if (Get.context != null) {
-        Navigator.of(Get.context!).pop(true);
+        if (Get.context != null) {
+          Navigator.of(Get.context!).pop(true);
+        } else {
+          Get.back(result: true);
+        }
       } else {
-        Get.back(result: true);
+        Get.snackbar("Error", response.message ?? "Failed to submit trees");
       }
-    } else {
-      Get.snackbar("Error", response.message ?? "Failed to submit trees");
+    } catch (e) {
+      isLoading.value = false;
+      Get.snackbar("Error", "Failed to process images: $e");
+      print("Error in submitAllStoredTrees: $e");
     }
   }
 
   @override
   void onClose() {
+    // Mark as disposed first
+    _isDisposed = true;
+    
+    // Cancel timer
     _debounce?.cancel();
+    
+    // Dispose workers
+    _positionWorker?.dispose();
+    _addressWorker?.dispose();
+    
+    // Dispose text controllers
     wardPlotNoController.dispose();
     treeNoController.dispose();
     treeNameController.dispose();
@@ -686,6 +759,7 @@ class AddTreeController extends GetxController {
     latitudeController.dispose();
     longitudeController.dispose();
     accuracyController.dispose();
+    
     super.onClose();
   }
 }

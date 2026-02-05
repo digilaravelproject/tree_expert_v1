@@ -63,7 +63,9 @@ class TreeModel {
   final String treeNo;
   final String treeName;
   final String scientificName;
+  final int? scientificNameId;
   final String family;
+  final int? familyNameId;
   final String? girth;
   final String? height;
   final String? canopy;
@@ -92,7 +94,9 @@ class TreeModel {
     required this.treeNo,
     required this.treeName,
     required this.scientificName,
+    this.scientificNameId,
     required this.family,
+    this.familyNameId,
     this.girth,
     this.height,
     this.canopy,
@@ -128,7 +132,9 @@ class TreeModel {
       treeNo: json['tree_no'] ?? '',
       treeName: json['tree_name'] ?? '',
       scientificName: json['scientific_name'] ?? '',
+      scientificNameId: json['scientific_name_id'],
       family: json['family'] ?? '',
+      familyNameId: json['family_name_id'],
       girth: json['girth']?.toString(),
       height: json['height']?.toString(),
       canopy: json['canopy']?.toString(),

@@ -510,7 +510,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                             Text(
                               "₹${_calculatedAmount.toStringAsFixed(2)} ($_selectedUnpaidTreeCount unpaid trees)",
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 18,
                                 color: Colors.orange.shade900,
                                 fontWeight: FontWeight.bold
                               ),

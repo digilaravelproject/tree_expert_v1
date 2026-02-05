@@ -176,7 +176,7 @@ class AuthService extends GetxService {
       }
 
       final response = await _apiClient.post(
-        ApiConstants.uploadProfileImage,
+        ApiConstants.updateProfileData,
         data: dio.FormData.fromMap(data),
       );
 
@@ -417,7 +417,7 @@ class AuthService extends GetxService {
   Future<ApiResponse<Map<String, dynamic>>> getUserProfile(int userId) async {
     try {
       final response = await _apiClient.get(
-        '${ApiConstants.userProfile}/$userId',
+        '${ApiConstants.getSingleUserData}/$userId',
       );
 
       if (response.statusCode == 200) {

@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 
 
 import '../../../auth/services/auth_service.dart';
+import '../../../profile/presentation/controller/profile_controller.dart';
 import '../widgets/project_card_shimmer.dart';
 import '../widgets/api_project_card.dart';
 import '../controller/home_controller.dart';
@@ -74,25 +75,8 @@ class HomePage extends GetWidget<HomeController> {
               ],
             )),
             actions: [
-              // Notification Bell
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    Get.toNamed(AppRoutes.notification);
-                  },
-                  icon: Icon(
-                    CupertinoIcons.bell,
-                    color: Colors.grey.shade700,
-                    size: 22,
-                  ),
-                ),
-              ),
-              SizedBox(width: 12),
-              // Profile Image
+
+
               Container(
                 width: 45,
                 height: 45,
@@ -107,15 +91,211 @@ class HomePage extends GetWidget<HomeController> {
                     color: Colors.grey.shade200,
                     child: InkWell(
                       onTap: () {
-                         Get.toNamed(AppRoutes.profile);
+                        Get.toNamed(AppRoutes.profile);
                       },
-                      child: Center(
-                        child: Icon(Icons.person, color: Colors.grey.shade500, size: 28),
-                      ),
+                      child: Obx(() {
+                        // Get profile controller
+                        final profileController = Get.find<ProfileController>();
+                        final profileImageUrl = profileController.userProfile.value?.profileImage;
+
+                        if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+                          return CustomImageView(
+                            url: profileImageUrl,
+                            width: 45,
+                            height: 45,
+                            fit: BoxFit.cover,
+                            onTap: () {
+                              // Override default behavior - do nothing or navigate to profile
+                              Get.toNamed(AppRoutes.profile);
+                            },
+                            enableFv: false, // Disable full view
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey.shade200,
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.grey.shade500,
+                                size: 28,
+                              ),
+                            ),
+                          );
+                        } else {
+                          return Container(
+                            color: Colors.grey.shade200,
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.grey.shade500,
+                              size: 28,
+                            ),
+                          );
+                        }
+                      }),
                     ),
                   ),
                 ),
               ),
+
+
+              // Notification Bell
+              // Container(
+              //   decoration: BoxDecoration(
+              //     color: Colors.grey.shade100,
+              //     shape: BoxShape.circle,
+              //   ),
+              //   child: IconButton(
+              //     onPressed: () {
+              //       Get.toNamed(AppRoutes.notification);
+              //     },
+              //     icon: Icon(
+              //       CupertinoIcons.bell,
+              //       color: Colors.grey.shade700,
+              //       size: 22,
+              //     ),
+              //   ),
+              // ),
+              // SizedBox(width: 12),
+              // Profile Image
+/*
+               Padding(
+                 padding: const EdgeInsets.all(16.0),
+                      child: Obx(() {
+                        final profileController = Get.find<ProfileController>();
+                        final profileImageUrl = profileController.userProfile.value?.profileImage;
+
+                        if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+                          return ClipOval(
+                            child: CustomImageView(
+                              url: profileImageUrl,
+                              width: 45,
+                              height: 45,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.grey.shade200,
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.grey.shade500,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          return Center(
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.grey.shade500,
+                              size: 28,
+                            ),
+                          );
+                        }
+                      }),
+
+               ),*/
+
+
+
+
+              /*Container(
+                width: 45,
+                height: 45,
+                margin: EdgeInsets.only(right: 16),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                ),
+                child: ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+        child: Material(
+          color: Colors.grey.shade200,
+          child: InkWell(
+            onTap: () {
+              Get.toNamed(AppRoutes.profile);
+            },
+            child:
+           *//* Center(
+              child: SizedBox(
+                width: 56, // Circle ka size
+                height: 56,
+                child: ClipOval(
+                  child: Image.network(
+                    "",// Yaha aapka network image URL
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Agar image load na ho to icon dikhaye
+                      return Container(
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.grey.shade500,
+                          size: 28,
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),*//*
+
+            Obx(() {
+              // Get profile controller
+              final profileController = Get.find<ProfileController>();
+              final profileImageUrl = profileController.userProfile.value?.profileImage;
+
+              if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+                return CustomImageView(
+                  url: profileImageUrl,
+                  width: 45,
+                  height: 45,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey.shade200,
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.grey.shade500,
+                      size: 28,
+                    ),
+                  ),
+                );
+              } else {
+                return Container(
+                  color: Colors.grey.shade200,
+                  child: Icon(
+                    Icons.person,
+                    color: Colors.grey.shade500,
+                    size: 28,
+                  ),
+                );
+              }
+            }),
+          ),
+        ),
+      ),
+
+      // ClipRRect(
+                //   borderRadius: BorderRadius.circular(25),
+                //   child: Material(
+                //     color: Colors.grey.shade200,
+                //     child: InkWell(
+                //       onTap: () {
+                //          Get.toNamed(AppRoutes.profile);
+                //       },
+                //       child: Center(
+                //         child: Icon(Icons.person, color: Colors.grey.shade500, size: 28),
+                //       ),
+                //     ),
+                //   ),
+                // ),
+              ),*/
             ],
           ),
 

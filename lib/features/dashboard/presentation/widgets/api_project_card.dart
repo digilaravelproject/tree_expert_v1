@@ -248,6 +248,7 @@ class ApiProjectCard extends StatelessWidget {
                       Get.toNamed('/addTrees', arguments: {
                         'projectId': project.id,
                         'treesCount': project.treesCount,
+                        'limit': project.limit,
                       });
                     },
                   ),

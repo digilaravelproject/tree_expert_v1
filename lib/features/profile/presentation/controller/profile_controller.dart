@@ -163,8 +163,24 @@ class ProfileController extends GetxController {
     int? userId = SharedPrefs.getInt(AppConstants.userIdPref);
     if (userId == null) return;
 
+    // Get current user profile data to pass required fields
+    if (userProfile.value == null) {
+      Get.snackbar("Error", "User profile not loaded");
+      return;
+    }
+
+    final profile = userProfile.value!;
+    
     isLoading.value = true;
-    final response = await _profileRepository.uploadProfileImage(File(imagePath), userId);
+    final response = await _profileRepository.uploadProfileImage(
+      File(imagePath), 
+      userId,
+      profile.name,
+      profile.email,
+      address: profile.address,
+      gender: profile.gender,
+      aadhaarNumber: profile.aadhaarNumber,
+    );
     
     if (response.success) {
       Get.snackbar("Success", "Profile image updated!");

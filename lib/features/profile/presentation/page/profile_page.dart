@@ -9,7 +9,9 @@ import '../../../../widgets/custom_image_view.dart';
 import '../../../../features/dashboard/presentation/controller/home_controller.dart';
 import '../../../../features/auth/services/auth_service.dart';
 import '../controller/profile_controller.dart';
+import '../controller/payslip_controller.dart';
 import '../widget/rating_dialog.dart';
+import 'payslip_page.dart';
 
 class ProfilePage extends GetWidget<ProfileController> {
   const ProfilePage({super.key});
@@ -29,9 +31,11 @@ class ProfilePage extends GetWidget<ProfileController> {
           dimension: 40,
           child: Padding(
             padding: const EdgeInsets.all(12.0),
-            child: CustomImageView(
-              imagePath: AppAssets.imgAppLogo,
-              fit: BoxFit.contain,
+            child: ClipOval(
+              child: CustomImageView(
+                imagePath: AppAssets.imgAppLogo,
+                fit: BoxFit.fill,
+              ),
             ),
           ),
         ),
@@ -151,12 +155,20 @@ class ProfilePage extends GetWidget<ProfileController> {
                   ),
                   _buildMenuItem(
                     context,
-                    icon: Icons.notifications_none,
-                    title: "Notification",
-                  //  subtitle: "Coming Soon",
-                    onTap: () => Get.toNamed(AppRoutes.notification)
-                        //Get.snackbar("Coming Soon", "Notification feature will be available soon!"),
+                    icon: Icons.receipt_long_outlined,
+                    title: "Payslip",
+                    onTap: () => Get.to(() => PayslipPage(), binding: BindingsBuilder(() {
+                      Get.lazyPut(() => PayslipController());
+                    })),
                   ),
+                  // _buildMenuItem(
+                  //   context,
+                  //   icon: Icons.notifications_none,
+                  //   title: "Notification",
+                  // //  subtitle: "Coming Soon",
+                  //   onTap: () => Get.toNamed(AppRoutes.notification)
+                  //       //Get.snackbar("Coming Soon", "Notification feature will be available soon!"),
+                  // ),
                   
                   Divider(height: 32),
                   

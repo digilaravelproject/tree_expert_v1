@@ -20,14 +20,16 @@ class AddTreesPage extends GetWidget<AddTreeController> {
           centerTitle: true,
           elevation: 0,
         ),
-        body: Column(
+        body: Obx(() => Stack(
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     // SECTION 1: Basic Information
                     _buildSectionCard(
                      // title: "Basic Information",
@@ -462,32 +464,74 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                 child: Obx(() => Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Checkbox for Multiple Add
-                        InkWell(
-                          onTap: () => controller.isAddMultiple.toggle(),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Transform.scale(
-                                scale: 1.1,
-                                child: Checkbox(
-                                  value: controller.isAddMultiple.value,
-                                  activeColor: Colors.green.shade700,
-                                  onChanged: (val) => controller.isAddMultiple.value = val ?? false,
+                        // Checkbox for Multiple Add - only show if can add multiple trees
+                        if (controller.canAddMultipleTrees) ...[
+                          InkWell(
+                            onTap: () => controller.isAddMultiple.toggle(),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Transform.scale(
+                                  scale: 1.1,
+                                  child: Checkbox(
+                                    value: controller.isAddMultiple.value,
+                                    activeColor: Colors.green.shade700,
+                                    onChanged: (val) => controller.isAddMultiple.value = val ?? false,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                "Add Multiple Trees",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                  color: Colors.black87
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Add Multiple Trees",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: Colors.black87
+                                        ),
+                                      ),
+                                      if (controller.projectLimit != null)
+                                        Text(
+                                          "Limit: ${controller.currentTreesCount + controller.localTrees.length + 1}/${controller.projectLimit}",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                       SizedBox(height: 8),
+                          SizedBox(height: 8),
+                        ] else if (controller.projectLimit != null) ...[
+                          // Show limit info when checkbox is hidden
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Project Limit: ${controller.currentTreesCount + controller.localTrees.length + 1}/${controller.projectLimit}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                        ],
 
                         // Submit Button
                         Padding(
@@ -505,22 +549,16 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: controller.isLoading.value
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2))
-                                : Text(
-                                    controller.isAddMultiple.value 
-                                      ? "Save & Add Next" 
-                                      : (controller.localTrees.isEmpty
-                                        ? "Submit"
-                                        : "Submit All (${controller.localTrees.length + 1})"),
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                  ),
+                            child: Text(
+                              controller.isAddMultiple.value 
+                                ? "Save & Add Next" 
+                                : (controller.localTrees.isEmpty
+                                  ? "Submit"
+                                  : "Submit All (${controller.localTrees.length + 1})"),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],
@@ -529,6 +567,57 @@ class AddTreesPage extends GetWidget<AddTreeController> {
             ),
           ],
         ),
+        
+        // Loading Overlay
+        if (controller.isLoading.value)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Colors.green.shade700,
+                      strokeWidth: 3,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      "Submitting Tree Data...",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Please wait while we process your data",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      )),
       ),
     );
   }

@@ -2,7 +2,9 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:tree_expert/core/constent/app_constants.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constent/api_constants.dart';
 import '../../../../widgets/custom_image_view.dart';
 import '../../../../widgets/custom_scaffold.dart';
 import '../../../projects/data/model/project_list_model.dart';
@@ -128,7 +130,13 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
 
   Widget _buildTreeCard(BuildContext context, TreeModel tree) {
     return GestureDetector(
-      onTap: () => _showTreeDetails(context, tree),
+
+      onTap: () =>
+
+          //print("treeImageUpload : "+ApiConstants.baseUrl+tree.treeImageUpload.toString()),
+
+
+      _showTreeDetails(context, tree),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -145,13 +153,20 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
         child: Stack(
           children: [
             // Background Image
-            if (tree.capturedImage != null && tree.capturedImage!.isNotEmpty)
+            if (tree.allCapturedImages != null && tree.allCapturedImages!.isNotEmpty)
               CustomImageView(
-                url: tree.capturedImage,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-              )
+                  url: "${ApiConstants.baseUrl}/${tree.allCapturedImages!.first}",
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                )
+            else if (tree.treeImageUpload != null && tree.treeImageUpload!.isNotEmpty)
+              CustomImageView(
+                  url:  "${ApiConstants.baseUrl}/${tree.treeImageUpload}",
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                )
             else
               Container(
                 color: Colors.grey.shade200,
@@ -299,7 +314,7 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
                  child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
                    children: [
-                     // Image
+                     // Image Slider
                      Container(
                        height: 200,
                        width: double.infinity,
@@ -308,9 +323,7 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
                          color: Colors.grey.shade200,
                        ),
                        clipBehavior: Clip.hardEdge,
-                       child: (tree.capturedImage != null && tree.capturedImage!.isNotEmpty)
-                        ? CustomImageView(url: tree.capturedImage, fit: BoxFit.cover)
-                        : Icon(Icons.park, size: 80, color: Colors.grey.shade400),
+                       child: _buildImageSlider(tree),
                      ),
                      SizedBox(height: 20),
                      
@@ -432,6 +445,263 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
         ),
       ),
       isScrollControlled: true,
+    );
+  }
+
+  Widget _buildImageSlider(TreeModel tree) {
+    // Get all available images
+    List<String> images = [];
+    
+    if (tree.allCapturedImages != null && tree.allCapturedImages!.isNotEmpty) {
+      images.addAll(tree.allCapturedImages!);
+    } else if (tree.treeImageUpload != null && tree.treeImageUpload!.isNotEmpty) {
+      images.add(tree.treeImageUpload!);
+    } else if (tree.capturedImage != null && tree.capturedImage!.isNotEmpty) {
+      images.add(tree.capturedImage!);
+    }
+    
+    if (images.isEmpty) {
+      return Center(
+        child: Icon(Icons.park, size: 80, color: Colors.grey.shade400),
+      );
+    }
+    
+    if (images.length == 1) {
+      // Single image - make it tappable to open full view
+      return GestureDetector(
+        onTap: () => _showImageGallery(images),
+        child: Stack(
+          children: [
+            CustomImageView(
+              url: "${ApiConstants.baseUrl}/${images.first}",
+              fit: BoxFit.cover,
+            ),
+            // Add a subtle tap indicator for single images
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.fullscreen,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Multiple images - show slider with indicators
+    return Stack(
+      children: [
+        PageView.builder(
+          itemCount: images.length,
+          onPageChanged: (index) {
+            // You can add a state variable to track current page if needed
+          },
+          itemBuilder: (context, index) {
+            return CustomImageView(
+              url: "${ApiConstants.baseUrl}/${images[index]}",
+              fit: BoxFit.cover,
+            );
+          },
+        ),
+        
+        // Image counter indicator
+        Positioned(
+          top: 12,
+          right: 12,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              "${images.length} photos",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        
+        // Tap to view all images
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => _showImageGallery(images),
+            child: Container(
+              color: Colors.transparent,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showImageGallery(List<String> images) {
+    final PageController pageController = PageController();
+    final RxInt currentIndex = 0.obs;
+    
+    Get.dialog(
+      Material(
+        color: Colors.black,
+        child: Stack(
+          children: [
+            // Main Image Viewer
+            Positioned.fill(
+              child: PageView.builder(
+                controller: pageController,
+                itemCount: images.length,
+                onPageChanged: (index) => currentIndex.value = index,
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: CustomImageView(
+                        url: "${ApiConstants.baseUrl}/${images[index]}",
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            // Top Bar with Close and Counter
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(16, 40, 16, 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withOpacity(0.8),
+                      Colors.transparent
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Get.back(),
+                      child: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.close, color: Colors.white, size: 24),
+                      ),
+                    ),
+                    Obx(() => Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        "${currentIndex.value + 1} / ${images.length}",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Bottom Thumbnail Strip (if more than 1 image)
+            if (images.length > 1)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.9)
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    itemCount: images.length,
+                    itemBuilder: (context, index) {
+                      return Obx(() {
+                        final isSelected = currentIndex.value == index;
+                        return GestureDetector(
+                          onTap: () {
+                            currentIndex.value = index;
+                            pageController.animateToPage(
+                              index,
+                              duration: Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: AnimatedContainer(
+                            duration: Duration(milliseconds: 200),
+                            margin: EdgeInsets.only(right: 12),
+                            width: isSelected ? 60 : 50,
+                            height: isSelected ? 60 : 50,
+                            decoration: BoxDecoration(
+                              border: isSelected
+                                  ? Border.all(color: Colors.white, width: 2)
+                                  : Border.all(color: Colors.white30, width: 1),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.5),
+                                        blurRadius: 8,
+                                      )
+                                    ]
+                                  : [],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: CustomImageView(
+                                url: "${ApiConstants.baseUrl}/${images[index]}",
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      barrierColor: Colors.black,
+      useSafeArea: false,
     );
   }
 
