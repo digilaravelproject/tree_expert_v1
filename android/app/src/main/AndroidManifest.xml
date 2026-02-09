@@ -23,7 +23,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <application
-        android:label="Tree Expert"
+        android:label="Geo map Tree"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true"

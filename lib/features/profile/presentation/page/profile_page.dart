@@ -27,18 +27,22 @@ class ProfilePage extends GetWidget<ProfileController> {
           ),
         ),
         centerTitle: true,
-        leading: SizedBox.square(
-          dimension: 40,
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: ClipOval(
-              child: CustomImageView(
-                imagePath: AppAssets.imgAppLogo,
-                fit: BoxFit.fill,
-              ),
-            ),
-          ),
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: Icon(Icons.arrow_back),
         ),
+        // leading: SizedBox.square(
+        //   dimension: 40,
+        //   child: Padding(
+        //     padding: const EdgeInsets.all(12.0),
+        //     child: ClipOval(
+        //       child: CustomImageView(
+        //         imagePath: AppAssets.imgAppLogo,
+        //         fit: BoxFit.fill,
+        //       ),
+        //     ),
+        //   ),
+        // ),
         actions: [],
       ),
       body: SingleChildScrollView(
@@ -233,10 +237,37 @@ class ProfilePage extends GetWidget<ProfileController> {
                     title: "Logout",
                     textColor: Colors.red,
                     iconColor: Colors.red,
-                    onTap: () {
-                      Get.find<AuthService>().logout();
+                    onTap: () async {
+                      final confirm = await LogoutDialog.show(
+                        context: context,
+                        title: 'Confirm Logout',
+                        message: 'You will be redirected to the login screen.',
+                      );
+                      if (confirm == true) {
+                        Get.find<AuthService>().logout();
+                      }
                     },
+                    // onTap: () {
+                    //   Get.find<AuthService>().logout();
+                    // },
                   ),
+
+
+                  // _SettingsItem(
+                  //   title: 'Logout',
+                  //   icon: Icons.logout_rounded,
+                  //   isDestructive: true,
+                  //   onTap: () async {
+                  //     final confirm = await LogoutDialog.show(
+                  //       context: context,
+                  //       title: 'Confirm Logout',
+                  //       message: 'You will be redirected to the login screen.',
+                  //     );
+                  //     if (confirm == true) {
+                  //       authService.logout();
+                  //     }
+                  //   },
+                  // ),
 
                   const SizedBox(height: 40),
                   
@@ -318,6 +349,130 @@ class ProfilePage extends GetWidget<ProfileController> {
       onTap: onTap,
       contentPadding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+}
+
+
+
+
+
+class LogoutDialog {
+  static Future<bool?> show({
+    required BuildContext context,
+    String title = 'Log Out',
+    String message = 'Are you sure you want to log out?',
+    String confirmText = 'Log Out',
+    String cancelText = 'Cancel',
+    Color confirmColor = Colors.red,
+    Color cancelColor = Colors.grey,
+    bool showIcon = true,
+    bool barrierDismissible = true,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showIcon)
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.red.withOpacity(0.1),
+                    ),
+                    child: const Icon(
+                      Icons.logout_rounded,
+                      size: 28,
+                      color: Colors.red,
+                    ),
+                  ),
+                if (showIcon) const SizedBox(height: 20),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pop(context, false);
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          cancelText,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: cancelColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context, true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: confirmColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          confirmText,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

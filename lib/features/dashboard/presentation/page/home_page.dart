@@ -579,7 +579,7 @@ class HomePage extends GetWidget<HomeController> {
         ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      /*floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
@@ -626,7 +626,7 @@ class HomePage extends GetWidget<HomeController> {
             ),
           ),
         ),
-      ),
+      ),*/
     );
   }
 

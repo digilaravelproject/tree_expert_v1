@@ -266,7 +266,7 @@ class SplashPage extends GetWidget<InitController> {
           ],
         ).createShader(bounds),
         child: Text(
-          "Tree Expert",
+          "Geo Map Tree",
           style: context.textTheme.headlineLarge!.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
