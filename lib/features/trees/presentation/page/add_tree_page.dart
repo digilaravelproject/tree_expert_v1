@@ -447,9 +447,9 @@ class AddTreesPage extends GetWidget<AddTreeController> {
               ),
             ),
 
-            // Bottom Submit Button
+            // Bottom Navigation Buttons
             Container(
-              padding: EdgeInsets.only(top: 0,bottom: 16,left: 16,right: 16),
+              padding: EdgeInsets.only(top: 8, bottom: 12, left: 16, right: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -462,107 +462,115 @@ class AddTreesPage extends GetWidget<AddTreeController> {
               ),
               child: SafeArea(
                 child: Obx(() => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Checkbox for Multiple Add - only show if can add multiple trees
-                        if (controller.canAddMultipleTrees) ...[
-                          InkWell(
-                            onTap: () => controller.isAddMultiple.toggle(),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Transform.scale(
-                                  scale: 1.1,
-                                  child: Checkbox(
-                                    value: controller.isAddMultiple.value,
-                                    activeColor: Colors.green.shade700,
-                                    onChanged: (val) => controller.isAddMultiple.value = val ?? false,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Add Multiple Trees",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
-                                          color: Colors.black87
-                                        ),
-                                      ),
-                                      if (controller.projectLimit != null)
-                                        Text(
-                                          "Limit: ${controller.currentTreesCount + controller.localTrees.length + 1}/${controller.projectLimit}",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade600
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                        ] else if (controller.projectLimit != null) ...[
-                          // Show limit info when checkbox is hidden
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline, color: Colors.orange.shade700, size: 16),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Project Limit: ${controller.currentTreesCount + controller.localTrees.length + 1}/${controller.projectLimit}",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange.shade700,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                        ],
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // // Show tree count info
+                    // if (controller.localTrees.isNotEmpty)
+                    //   Container(
+                    //     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    //     margin: EdgeInsets.only(bottom: 12),
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.blue[50],
+                    //       borderRadius: BorderRadius.circular(8),
+                    //       border: Border.all(color: Colors.blue[200]!),
+                    //     ),
+                    //     child: Row(
+                    //       children: [
+                    //         Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                    //         SizedBox(width: 8),
+                    //         Expanded(
+                    //           child: Text(
+                    //             "${controller.localTrees.length} tree(s) added. Current: Tree ${controller.currentTreeIndex.value + 1}",
+                    //             style: TextStyle(
+                    //               color: Colors.blue[700],
+                    //               fontSize: 13,
+                    //               fontWeight: FontWeight.w500,
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
 
-                        // Submit Button
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 0),
-                          child: ElevatedButton(
+                    // Navigation Buttons Row
+                    Row(
+                      children: [
+                        // Previous Button
+                        if (controller.currentTreeIndex.value > 0)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: controller.isLoading.value
+                                  ? null
+                                  : controller.onPrevious,
+                              icon: Icon(Icons.arrow_back, size: 18),
+                              label: Text("Previous"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey.shade600,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        if (controller.currentTreeIndex.value > 0)
+                          SizedBox(width: 12),
+
+                        // Add & Next Button
+                        Expanded(
+                          flex: controller.currentTreeIndex.value > 0 ? 1 : 2,
+                          child: ElevatedButton.icon(
                             onPressed: controller.isLoading.value
                                 ? null
-                                : controller.handleSubmit,
+                                : controller.onContinue,
+                            icon: Icon(Icons.add, size: 18),
+                            label: Text("Add & Next"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green.shade700,
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              minimumSize: Size(double.infinity, 50),
+                              padding: EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text(
-                              controller.isAddMultiple.value 
-                                ? "Save & Add Next" 
-                                : (controller.localTrees.isEmpty
-                                  ? "Submit"
-                                  : "Submit All (${controller.localTrees.length + 1})"),
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold),
-                            ),
                           ),
                         ),
                       ],
-                    )),
+                    ),
+
+                    SizedBox(height: 12),
+
+                    // Final Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : controller.handleSubmit,
+                        icon: Icon(Icons.check_circle, size: 18),
+                        label: Text(
+                          controller.localTrees.isEmpty
+                              ? "Submit"
+                              : "Final Submit (${controller.localTrees.length + 1} trees)",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )),
               ),
             ),
           ],

@@ -469,20 +469,58 @@ class HomePage extends GetWidget<HomeController> {
                               ),
                             ],
                           ),
-                          Obx(() => !Get.find<AuthService>().isCompanyLogin.value ? InkWell(
-                             onTap: () {
-                               Get.toNamed(AppRoutes.addProjects);
-                             },
-                             borderRadius: BorderRadius.circular(8),
-                             child: Padding(
-                               padding: EdgeInsets.all(4.0),
-                               child: Icon(
-                                 CupertinoIcons.add_circled_solid, 
-                                 color: context.theme.primaryColor,
-                                 size: 26
-                               ),
-                             ),
-                          ) : SizedBox.shrink()),
+                          Obx(() => !Get.find<AuthService>().isCompanyLogin.value 
+                            ? Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      context.theme.primaryColor,
+                                      context.theme.primaryColor.withOpacity(0.8),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: context.theme.primaryColor.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () {
+                                      Get.toNamed(AppRoutes.addProjects);
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.add_circle,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            "Add Project",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : SizedBox.shrink()
+                          ),
                         ],
                       ),
                     ),
