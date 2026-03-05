@@ -19,6 +19,7 @@ class AddTreeController extends GetxController {
 
   // Form Controllers
   final wardPlotNoController = TextEditingController();
+  final plotNoController = TextEditingController();
   final treeNoController = TextEditingController();
   final treeNameController = TextEditingController();
   final scientificNameController = TextEditingController();
@@ -41,7 +42,7 @@ class AddTreeController extends GetxController {
   String? selectedFamilyId;
 
   // Observables
-  final RxString selectedUnit = 'Meter'.obs; // Meter or Feet
+  final RxString selectedUnit = 'Feet'.obs; // Meter or Feet
   final RxString selectedCondition = 'Good'.obs;
   final RxString selectedProposedFor = 'Retain'.obs;
   final RxString selectedOwnership = 'Pvt'.obs;
@@ -192,7 +193,7 @@ class AddTreeController extends GetxController {
       currentTreeNo.value = baseTreeCount + 1 + currentTreeIndex.value;
     }
     
-    treeNoController.text = "T-${currentTreeNo.value}";
+    treeNoController.text = "${currentTreeNo.value}";
     
     // Auto-fill GPS coordinates
     _captureGPSLocation();
@@ -439,6 +440,7 @@ class AddTreeController extends GetxController {
     // Map field keys to controllers/values
     Map<String, String> fieldValues = {
       'ward_plot_no': wardPlotNoController.text,
+      'plot_no': plotNoController.text,
       'tree_no': treeNoController.text,
       'tree_name': treeNameController.text,
       'scientific_name': scientificNameController.text,
@@ -460,25 +462,73 @@ class AddTreeController extends GetxController {
     // Iterate through requirements provided by API
     for (var entry in req.entries) {
       final key = entry.key;
-      final isRequired = entry.value == true;
+      final fieldData = entry.value; 
       
-      if (isRequired) {
-        if (key == 'tree_images') {
-          if (capturedPhotos.isEmpty) {
+      // Handle Nested Structure: "field": { "is_required": { "is_required": true, ... } }
+      if (fieldData is! Map) continue;
+      
+      // Check if 'is_required' key exists and is a Map (The nested object)
+      dynamic rules = fieldData; 
+      if (fieldData.containsKey('is_required') && fieldData['is_required'] is Map) {
+         rules = fieldData['is_required'];
+      } else {
+         // Fallback if structure is flat (just in case)
+         rules = fieldData;
+      }
+
+      final isRequired = rules['is_required'] == true;
+      final minValue = rules['min_value'];
+      final maxValue = rules['max_value'];
+      
+      // Special Handling for Images
+      if (key == 'all_captured_images') {
+         // Check Required
+         if (isRequired && capturedPhotos.isEmpty) {
             firstError = "At least one tree image is required";
             break;
-          }
-        } else if (fieldValues.containsKey(key)) {
-          if (fieldValues[key]!.trim().isEmpty) {
+         }
+         // Check Min
+         if (minValue != null && capturedPhotos.length < (minValue as num).toInt()) {
+            firstError = "At least $minValue images are required";
+            break;
+         }
+         // Check Max
+         if (maxValue != null && capturedPhotos.length > (maxValue as num).toInt()) {
+            firstError = "Maximum $maxValue images allowed";
+            break;
+         }
+         continue; 
+      }
+
+      // Handling Text Fields and Dropdowns
+      if (fieldValues.containsKey(key)) {
+         String valueStr = fieldValues[key] == null ? "" : fieldValues[key]!.trim();
+         
+         // 1. Check Required
+         if (isRequired && valueStr.isEmpty) {
             firstError = "${_formatFieldName(key)} is required";
             break;
-          }
-        }
+         }
+         
+         // 2. Check Min/Max (Only if value exists)
+         if (valueStr.isNotEmpty) {
+            final numValue = double.tryParse(valueStr);
+            if (numValue != null) {
+               if (minValue != null && numValue < (minValue as num).toDouble()) {
+                  firstError = "${_formatFieldName(key)} must be at least $minValue";
+                  break;
+               }
+               if (maxValue != null && numValue > (maxValue as num).toDouble()) {
+                  firstError = "${_formatFieldName(key)} must be at most $maxValue";
+                  break;
+               }
+            }
+         }
       }
     }
 
     if (firstError != null) {
-      Get.snackbar("Required", firstError, 
+      Get.snackbar("Validation Error", firstError, 
           snackPosition: SnackPosition.BOTTOM, 
           backgroundColor: Colors.red, 
           colorText: Colors.white);
@@ -491,6 +541,8 @@ class AddTreeController extends GetxController {
   String _formatFieldName(String key) {
     return key.split('_').map((e) => e.capitalizeFirst).join(' ');
   }
+
+  final RxBool isWardPlotNoEditable = true.obs;
 
   Future<void> _fetchFieldRequirements() async {
     if (projectId == null) return;
@@ -509,7 +561,23 @@ class AddTreeController extends GetxController {
       );
 
       if (response.success && response.data != null) {
-        fieldRequirements.value = response.data!;
+        final data = response.data!;
+
+        print("wardPlotNo : "+response.data.toString());
+        
+        // Handle Ward Number logic
+        if (data.containsKey('ward_no') && data['ward_no'] != null) {
+          wardPlotNoController.text = data['ward_no'].toString();
+          isWardPlotNoEditable.value = false;
+        } else {
+          isWardPlotNoEditable.value = true;
+        }
+
+        // Store requirements
+        if (data.containsKey('requirements') && data['requirements'] is Map) {
+           fieldRequirements.value = Map<String, dynamic>.from(data['requirements']);
+        }
+        
         print("Fetched Requirements: $fieldRequirements");
       }
     } catch (e) {
@@ -592,7 +660,7 @@ class AddTreeController extends GetxController {
     // Parse the numeric part from "T-123"
     int nextNo = currentTreeNo.value + 1; // currentTreeNo is already tracked
     currentTreeNo.value = nextNo; 
-    treeNoController.text = "T-$nextNo";
+    treeNoController.text = "$nextNo";
     
     // Keep tree selection for multiple add - don't clear tree-related fields
     // treeNameController.clear(); // Keep tree name

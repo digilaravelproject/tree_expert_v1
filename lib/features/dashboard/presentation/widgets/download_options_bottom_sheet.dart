@@ -14,7 +14,6 @@ class DownloadOptionsBottomSheet extends StatefulWidget {
     required this.projectId,
     this.selectedTreeIds,
   });
-
   @override
   State<DownloadOptionsBottomSheet> createState() => _DownloadOptionsBottomSheetState();
 }
@@ -223,6 +222,14 @@ class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet>
             subtitle: "Download KML file",
             color: Colors.blue,
             onTap: () => _handleLaunch(_links!['kml']!),
+          ),
+        if (_links!.containsKey('imgs_zip'))
+          _buildDownloadOption(
+            icon: Icons.map,
+            title: "Images",
+            subtitle: "Download Image file",
+            color: Colors.blue,
+            onTap: () => _handleLaunch(_links!['imgs_zip']!),
           ),
       ],
     );

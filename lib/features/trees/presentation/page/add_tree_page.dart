@@ -40,9 +40,9 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                             Expanded(
                               child: _buildTextField(
                                 textController: controller.wardPlotNoController,
-                                label: "Ward/Plot No",
+                                label: "Ward No",
                                 reqKey: "ward_plot_no",
-                                hint: "Enter ward/plot number",
+                                hint: "Enter ward number",
                               ),
                             ),
                             SizedBox(width: 12),
@@ -62,6 +62,15 @@ class AddTreesPage extends GetWidget<AddTreeController> {
 
                     SizedBox(height: 8),
 
+                        _buildTextField(
+                            textController: controller.plotNoController,
+                            label: "Plot No",
+                            reqKey: "plot_no",
+                            hint: "Enter plot number",
+                          ),
+
+
+                        SizedBox(height: 8),
                     // SECTION 2: Tree Details
                     _buildSectionCard(
                      // title: "Tree Details",
@@ -110,13 +119,13 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: [
                                 Text("Unit: ", style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
-                                ChoiceChip(
+                                /*ChoiceChip(
                                   label: Text("Meter"),
                                   selected:
                                       controller.selectedUnit.value == 'Meter',
                                   onSelected: (_) => controller.toggleUnit(),
                                 ),
-                                SizedBox(width: 10),
+                                SizedBox(width: 10),*/
                                 ChoiceChip(
                                   label: Text("Feet"),
                                   selected:
@@ -307,11 +316,24 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                                       color: Colors.grey.shade700,
                                     ),
                                   ),
-                                  if (controller.fieldRequirements['tree_images'] == true)
-                                    Text(" *",
-                                        style: TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.bold)),
+                                  if (controller.fieldRequirements.containsKey('all_captured_images'))
+                                    Obx(() {
+                                      bool isRequired = false;
+                                      final fieldData = controller.fieldRequirements['all_captured_images'];
+                                      if (fieldData is Map && fieldData.containsKey('is_required')) {
+                                          final rules = fieldData['is_required'];
+                                          if (rules is Map) {
+                                            isRequired = rules['is_required'] == true;
+                                          }
+                                      }
+                                      if (isRequired) {
+                                         return Text(" *",
+                                          style: TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold));
+                                      }
+                                      return SizedBox.shrink();
+                                    }),
                                 ],
                               ),
                               if (controller.capturedPhotos.isNotEmpty)
@@ -718,7 +740,20 @@ class AddTreesPage extends GetWidget<AddTreeController> {
       children: [
         if (reqKey != null)
           Obx(() {
-            bool isRequired = controller.fieldRequirements[reqKey] == true;
+            bool isRequired = false;
+            // Check if key exists
+            if (controller.fieldRequirements.containsKey(reqKey)) {
+               final fieldData = controller.fieldRequirements[reqKey];
+               // Handle nested structure from API
+               if (fieldData is Map && fieldData.containsKey('is_required')) {
+                   final rules = fieldData['is_required'];
+                   if (rules is Map) {
+                     isRequired = rules['is_required'] == true;
+                   } else if (rules is bool) {
+                     isRequired = rules;
+                   }
+               }
+            }
             return _buildRichLabel(label, isRequired);
           })
         else
@@ -787,7 +822,19 @@ class AddTreesPage extends GetWidget<AddTreeController> {
       children: [
         if (reqKey != null)
           Obx(() {
-            bool isRequired = controller.fieldRequirements[reqKey] == true;
+            bool isRequired = false;
+            if (controller.fieldRequirements.containsKey(reqKey)) {
+               final fieldData = controller.fieldRequirements[reqKey];
+               if (fieldData is Map && fieldData.containsKey('is_required')) {
+                  // Nested check
+                   final rules = fieldData['is_required'];
+                   if (rules is Map) {
+                     isRequired = rules['is_required'] == true;
+                   } else if (rules is bool) {
+                     isRequired = rules;
+                   }
+               }
+            }
             return _buildRichLabel(label, isRequired);
           })
         else

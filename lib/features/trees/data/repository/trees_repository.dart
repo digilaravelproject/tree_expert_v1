@@ -149,7 +149,8 @@ class TreesRepository {
       if (response.statusCode == 200) {
         final data = response.data;
         if (data is Map && data['success'] == true) {
-             return ApiResponse.success(Map<String, dynamic>.from(data['requirements']));
+             // Return full data to access ward_no and other fields
+             return ApiResponse.success(Map<String, dynamic>.from(data));
         } else {
              return ApiResponse.error(data is Map ? (data['message'] ?? 'Failed to fetch requirements') : 'Failed');
         }

@@ -275,63 +275,7 @@ class RazorpayController extends GetxController {
 
   }
 
-  /// 🔔 Payment Verification API call
-  /*Future<void> _verifyPayment({
-    required String razorpayOrderId,
-    required String razorpayPaymentId,
-    required String razorpaySignature,
-    required int userId,
-    required int amount,
-    required List<int> treeIds,
-  }) async {
-    final url = Uri.parse(
-        'https://darkorange-baboon-922736.hostingersite.com/public/api/payment/verify');
 
-    final body = {
-      "razorpay_order_id": razorpayOrderId,
-      "razorpay_payment_id": razorpayPaymentId,
-      "razorpay_signature": razorpaySignature,
-      "user_id": userId.toString(),
-      "amount": amount.toString(),
-      "tree_ids": treeIds,
-    };
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-
-      final data = jsonDecode(response.body);
-
-      print("response for verify : "+response.body);
-
-      if (response.statusCode == 200 && data['success'] == true) {
-        print("response for verify : "+response.body);
-        Get.snackbar(
-          'Payment Verified',
-          'Your payment has been successfully verified.',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-      } else {
-        Get.snackbar(
-          'Verification Failed',
-          data['message'] ?? 'Payment verification failed',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to verify payment: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-  }*/
 
   @override
   void onClose() {
