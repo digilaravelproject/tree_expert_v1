@@ -631,6 +631,8 @@ class AddTreeController extends GetxController {
        photos: List.from(capturedPhotos),
      );
 
+     // print("object")
+
      if (currentTreeIndex.value < localTrees.length) {
        localTrees[currentTreeIndex.value] = entry;
      } else {

@@ -59,7 +59,7 @@ class TreesRepository {
         ApiConstants.treeInProject,
         data: {
           'project_id': int.parse(projectId),
-          if (userId != null) 'user_id': userId,
+          'user_id': userId,
         },
       );
 
@@ -167,3 +167,8 @@ class TreesRepository {
     }
   }
 }
+
+
+
+
+/*//if (userId != null) */
