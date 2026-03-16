@@ -41,6 +41,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                               child: _buildTextField(
                                 textController: controller.wardPlotNoController,
                                 label: "Ward No",
+                                keyboardType: TextInputType.number,
                                 reqKey: "ward_plot_no",
                                 hint: "Enter ward number",
                               ),
@@ -66,6 +67,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                             textController: controller.plotNoController,
                             label: "Plot No",
                             reqKey: "plot_no",
+                            keyboardType: TextInputType.number,
                             hint: "Enter plot number",
                           ),
 

@@ -7,12 +7,14 @@ class DownloadOptionsBottomSheet extends StatefulWidget {
   final String projectName;
   final int projectId;
   final List<int>? selectedTreeIds;
+  final Map<String, dynamic>? exportLinks;
 
   const DownloadOptionsBottomSheet({
     super.key,
     required this.projectName,
     required this.projectId,
     this.selectedTreeIds,
+    this.exportLinks,
   });
   @override
   State<DownloadOptionsBottomSheet> createState() => _DownloadOptionsBottomSheetState();
@@ -27,7 +29,21 @@ class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet>
   @override
   void initState() {
     super.initState();
-    _fetchLinks();
+    // If exportLinks are provided, use them directly; otherwise fetch them
+    if (widget.exportLinks != null) {
+      _setLinksFromExportData(widget.exportLinks!);
+    } else {
+      _fetchLinks();
+    }
+  }
+
+  void _setLinksFromExportData(Map<String, dynamic> exportLinks) {
+    setState(() {
+      _links = Map<String, String>.from(
+        exportLinks.map((key, value) => MapEntry(key.toString(), value.toString()))
+      );
+      _isLoading = false;
+    });
   }
 
   Future<void> _fetchLinks() async {

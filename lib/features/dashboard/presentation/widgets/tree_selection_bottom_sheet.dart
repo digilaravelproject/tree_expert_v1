@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:tree_expert/features/trees/data/model/tree_model.dart';
 import 'package:tree_expert/features/trees/data/repository/trees_repository.dart';
@@ -35,10 +36,15 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
   List<TreeModel> _allTrees = [];
   bool _isLoading = true;
   bool _isProcessingPayment = false;
+  bool _isCheckingAccess = false;
   String? _error;
 
   int? _selectedFromCount;
   int? _selectedToCount;
+  
+  // Export links state
+  Map<String, dynamic>? _exportLinksData;
+  bool _showDownloadOptions = false;
 
   @override
   void initState() {
@@ -53,7 +59,11 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     });
 
     try {
-      final response = await _repository.getTreesByProject(widget.projectId.toString());
+      final userId = SharedPrefs.getInt(AppConstants.userIdPref) ?? 0;
+      final response = await _repository.getTreesByProject(
+        widget.projectId.toString(),
+        userId: userId,
+      );
       if (response.success && response.data != null) {
         setState(() {
           _allTrees = response.data!;
@@ -109,6 +119,11 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     return _selectedTrees.where((t) => t.payment == 0).length;
   }
 
+  // Count of free trees in selection
+  int get _selectedFreeTreeCount {
+    return _selectedTrees.where((t) => t.isFree ?? false).length;
+  }
+
   double get _calculatedAmount {
     return _selectedUnpaidTreeCount * widget.activeTreePrice;
   }
@@ -121,9 +136,94 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     return _selectedTrees.isNotEmpty && _selectedTrees.every((t) => t.payment == 1);
   }
 
-  Future<void> _handlePay() async {
-    if (_selectedUnpaidTreeIds.isEmpty) {
-      Get.snackbar("Error", "No unpaid trees selected", snackPosition: SnackPosition.BOTTOM);
+  Future<void> _checkAccessAndGetLinks() async {
+    if (_selectedTreeIds.isEmpty) {
+      Get.snackbar("Error", "No trees selected", snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    setState(() {
+      _isCheckingAccess = true;
+      _error = null;
+    });
+
+    try {
+      final userId = SharedPrefs.getInt(AppConstants.userIdPref) ?? 0;
+      
+      final response = await _paymentRepository.getProjectExportLinks(
+        userId: userId,
+        projectId: widget.projectId,
+        treeIds: _selectedTreeIds,
+      );
+
+      if (response.success && response.data != null) {
+        final data = response.data!;
+        final paymentRequired = data['payment_required'];
+
+        if (paymentRequired == null) {
+          // No payment required - directly open download options
+          final links = data['links'] as Map<String, dynamic>?;
+          if (links != null) {
+            setState(() {
+              _isCheckingAccess = false;
+            });
+            Get.back();
+            Get.bottomSheet(
+              DownloadOptionsBottomSheet(
+                projectName: widget.projectName,
+                projectId: widget.projectId,
+                selectedTreeIds: _selectedTreeIds,
+                exportLinks: links,
+              ),
+              isScrollControlled: true,
+            );
+          } else {
+            setState(() {
+              _error = "No download links available";
+              _isCheckingAccess = false;
+            });
+          }
+        } else {
+          // Payment required - show payment UI
+          setState(() {
+            _exportLinksData = data;
+            _isCheckingAccess = false;
+          });
+        }
+      } else {
+        setState(() {
+          _error = response.message ?? "Failed to check access";
+          _isCheckingAccess = false;
+        });
+        Get.snackbar(
+          "Error",
+          response.message ?? "Failed to check access",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _error = "Error: $e";
+        _isCheckingAccess = false;
+      });
+      Get.snackbar(
+        "Error",
+        "Failed to check access: $e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _handlePaymentRequired(Map<String, dynamic> paymentRequired) async {
+    final treeIds = paymentRequired['tree_ids'] as List?;
+    final totalAmount = paymentRequired['total_amount'] as num?;
+
+    if (treeIds == null || totalAmount == null) {
+      Get.snackbar("Error", "Invalid payment data", snackPosition: SnackPosition.BOTTOM);
       return;
     }
 
@@ -132,14 +232,12 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     });
 
     try {
-      // Get user ID
       final userId = SharedPrefs.getInt(AppConstants.userIdPref) ?? 0;
       
-      // Call create-order API with only unpaid tree IDs
       final response = await _paymentRepository.createOrder(
         userId: userId,
-        amount: _calculatedAmount.toInt(),
-        treeIds: _selectedUnpaidTreeIds,
+        amount: totalAmount.toInt(),
+        treeIds: List<int>.from(treeIds),
       );
 
       if (response.success && response.data != null) {
@@ -147,14 +245,14 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
         final key = response.data!['key'] as String?;
         
         razorpayController.openCheckout(
-          amount: _calculatedAmount.toInt(),
+          amount: totalAmount.toInt(),
           name: 'Tree Expert',
           description: 'Project: ${widget.projectName}',
-          mobile: '9651017054', // Get from user profile ideally
-          email: 'awantikayadav014@gmail.com', // Get from user profile
+          mobile: '9651017054',
+          email: 'awantikayadav014@gmail.com',
           orderId: orderId,
           key: key,
-          treeIds: _selectedUnpaidTreeIds,
+          treeIds: List<int>.from(treeIds),
           userId: userId,
         );
         Get.back();
@@ -183,14 +281,19 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     }
   }
 
-  void _handleView() {
-    // Close current sheet and open download options with selected tree IDs
+  void _showDownloadLinks() {
+    if (_exportLinksData == null) return;
+
+    final links = _exportLinksData!['links'] as Map<String, dynamic>?;
+    if (links == null) return;
+
     Get.back();
     Get.bottomSheet(
       DownloadOptionsBottomSheet(
         projectName: widget.projectName,
         projectId: widget.projectId,
         selectedTreeIds: _selectedTreeIds,
+        exportLinks: links,
       ),
       isScrollControlled: true,
     );
@@ -322,15 +425,19 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                       items: countList.map((count) {
                         final tree = _allTrees[count - 1];
                         final isPaid = tree.payment == 1;
+                        final isFree = tree.isFree ?? false;
                         return DropdownMenuItem(
                           value: count, 
                           child: Row(
                             children: [
-                              Text("$count"),
-                              SizedBox(width: 4),
-                              Text("(${tree.treeNo})", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                              SizedBox(width: 4),
-                              if (isPaid) 
+                              Text("$count-",style: TextStyle(fontSize: 12),),
+                              Text("${tree.treeName}",style: TextStyle(fontSize: 12),),
+                              SizedBox(width: 2),
+                              Text("(${tree.treeNo})", style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                              SizedBox(width: 2),
+                              if (isFree)
+                                Icon(CupertinoIcons.checkmark_seal_fill, size: 16, color: Colors.blue)
+                              else if (isPaid) 
                                 Icon(Icons.check_circle, size: 16, color: Colors.green)
                               else
                                 Icon(Icons.radio_button_unchecked, size: 16, color: Colors.orange),
@@ -376,15 +483,19 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                         : countList.where((count) => count >= _selectedFromCount!).map((count) {
                             final tree = _allTrees[count - 1];
                             final isPaid = tree.payment == 1;
+                            final isFree = tree.isFree ?? false;
                             return DropdownMenuItem(
                               value: count, 
                               child: Row(
                                 children: [
-                                  Text("$count"),
-                                  SizedBox(width: 4),
+                                  Text("$count-",style: TextStyle(fontSize: 12),),
+                                  Text("${tree.treeName}",style: TextStyle(fontSize: 12),),
+                                  SizedBox(width: 2),
                                   Text("(${tree.treeNo})", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                                  SizedBox(width: 4),
-                                  if (isPaid) 
+                                  SizedBox(width: 2),
+                                  if (isFree)
+                                    Icon(CupertinoIcons.checkmark_seal_fill, size: 16, color: Colors.blue)
+                                  else if (isPaid) 
                                     Icon(Icons.check_circle, size: 16, color: Colors.green)
                                   else
                                     Icon(Icons.radio_button_unchecked, size: 16, color: Colors.orange),
@@ -426,7 +537,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    "Selected: $_selectedTreeCount trees | Paid: ${_selectedTreeCount - _selectedUnpaidTreeCount} | Unpaid: $_selectedUnpaidTreeCount",
+                    "Selected: $_selectedTreeCount trees | Paid: ${_selectedTreeCount - _selectedUnpaidTreeCount} | Unpaid: $_selectedUnpaidTreeCount | Free: $_selectedFreeTreeCount",
                     style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
                   ),
                 ],
@@ -437,52 +548,8 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
 
           // Action Buttons
           if (_selectedFromCount != null && _selectedToCount != null) ...[
-            if (_allSelectedTreesPaid) ...[
-              // All selected trees are paid OR company login - show View button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _handleView,
-                  icon: Icon(Icons.visibility),
-                  label: Text("View / Download"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-              // Show company access message if applicable
-              if (Get.find<AuthService>().isCompanyLogin.value) ...[
-                SizedBox(height: 8),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade100)
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.business, color: Colors.blue.shade700, size: 16),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Company Access: No payment required",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ] else ...[
-              // Some trees are unpaid - show payment info and buttons
+            if (_exportLinksData != null && _exportLinksData!['payment_required'] != null) ...[
+              // Show payment required UI
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -508,7 +575,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                               ),
                             ),
                             Text(
-                              "₹${_calculatedAmount.toStringAsFixed(2)} ($_selectedUnpaidTreeCount unpaid trees)",
+                              "₹${(_exportLinksData!['payment_required']['total_amount'] as num).toStringAsFixed(2)} (${(_exportLinksData!['payment_required']['tree_ids'] as List).length} trees)",
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.orange.shade900,
@@ -518,7 +585,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                           ],
                         ),
                         ElevatedButton(
-                          onPressed: _isProcessingPayment ? null : _handlePay,
+                          onPressed: _isProcessingPayment ? null : () => _handlePaymentRequired(_exportLinksData!['payment_required']),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
@@ -547,6 +614,31 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                       style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
                     ),
                   ],
+                ),
+              ),
+            ] else ...[
+              // Initial download button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isCheckingAccess ? null : _checkAccessAndGetLinks,
+                  icon: _isCheckingAccess 
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Icon(Icons.download),
+                  label: Text(_isCheckingAccess ? "Checking Access..." : "Download"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
               ),
             ],

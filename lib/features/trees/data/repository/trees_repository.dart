@@ -53,9 +53,15 @@ class TreesRepository {
     }
   }
   
-  Future<ApiResponse<List<TreeModel>>> getTreesByProject(String projectId) async {
+  Future<ApiResponse<List<TreeModel>>> getTreesByProject(String projectId, {int? userId}) async {
     try {
-      final response = await _apiClient.get("${ApiConstants.treeInProject}/$projectId");
+      final response = await _apiClient.post(
+        ApiConstants.treeInProject,
+        data: {
+          'project_id': int.parse(projectId),
+          if (userId != null) 'user_id': userId,
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -66,7 +72,6 @@ class TreesRepository {
               .toList();
           return ApiResponse.success(trees);
         } else {
-           // Handle direct list if API changes, but user response shows {status: true, data: [...]}
            return ApiResponse.error(data is Map 
             ? (data['message'] ?? 'Failed to load project trees') 
             : 'Unexpected response');

@@ -405,8 +405,22 @@ class AddTreeController extends GetxController {
     }
   }
 
-  void onContinue() {
+  Future<void> onContinue() async {
     if (_validateCurrentForm()) {
+
+      final confirmed = await Get.dialog<bool>(
+        AlertDialog(
+          title: Text("Do you want to save this tree data?"),
+          // content: Text("Add ${localTrees.length} ${localTrees.length == 1 ? 'tree' : 'trees'}?"),
+          actions: [
+            TextButton(onPressed: () => Get.back(result: false), child: Text("No")),
+            ElevatedButton(onPressed: () => Get.back(result: true), child: Text("Yes, Add")),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
       _saveCurrentTreeToLocal();
       currentTreeIndex.value++;
       

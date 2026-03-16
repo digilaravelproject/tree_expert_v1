@@ -85,6 +85,9 @@ class TreeModel {
   final String? datetime;
   final String? createdAt;
   final String? updatedAt;
+  final bool? isFree;
+  final bool? isPaid;
+  final bool? isAccessible;
 
   TreeModel({
     required this.id,
@@ -116,6 +119,9 @@ class TreeModel {
     this.datetime,
     this.createdAt,
     this.updatedAt,
+    this.isFree,
+    this.isPaid,
+    this.isAccessible,
   });
 
   factory TreeModel.fromJson(Map<String, dynamic> json) {
@@ -154,6 +160,9 @@ class TreeModel {
       datetime: json['datetime'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
+      isFree: json['is_free'] ?? false,
+      isPaid: json['is_paid'] ?? false,
+      isAccessible: json['is_accessible'] ?? false,
     );
   }
 }

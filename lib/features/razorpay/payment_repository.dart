@@ -112,4 +112,50 @@ class PaymentRepository {
     }
   }
 
+  /// Get project export links
+  /// Returns download links and payment info if required
+  Future<ApiResponse<Map<String, dynamic>>> getProjectExportLinks({
+    required int userId,
+    required int projectId,
+    required List<int> treeIds,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.getProjectExportLinks,
+        data: {
+          'user_id': userId,
+          'project_id': projectId,
+          'tree_ids': treeIds,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        
+        if (data['success'] == true) {
+          return ApiResponse.success(
+            data,
+            message: data['message'] ?? 'Export links retrieved successfully',
+            code: response.statusCode,
+          );
+        } else {
+          return ApiResponse.error(
+            data['message'] ?? 'Failed to get export links',
+            code: response.statusCode,
+          );
+        }
+      } else {
+        return ApiResponse.error(
+          'Failed to get export links',
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(
+        'Error getting export links: $e',
+        error: e,
+      );
+    }
+  }
+
 }
