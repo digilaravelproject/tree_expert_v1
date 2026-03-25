@@ -78,19 +78,77 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                      // title: "Tree Details",
                      // icon: Icons.park,
                       children: [
-                        GestureDetector(
-                          onTap: () {
-                            _showTreeSelectionSheet(context);
-                          },
-                          child: AbsorbPointer(
-                            child: _buildTextField(
-                              textController: controller.treeNameController,
-                              label: "Tree Name",
-                              reqKey: "tree_name",
-                              hint: "Select Tree",
-                              // suffixIcon: Icon(Icons.arrow_drop_down), // Optional UI hint
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  _showTreeSelectionSheet(context);
+                                },
+                                child: AbsorbPointer(
+                                  child: _buildTextField(
+                                    textController: controller.treeNameController,
+                                    label: "Tree Name",
+                                    reqKey: "tree_name",
+                                    hint: "Select Tree",
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            SizedBox(width: 8),
+
+                            Container(
+                              decoration: BoxDecoration(
+                                color: context.theme.primaryColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: context.theme.primaryColor,
+                                  width: 1,
+                                ),
+                              ),
+                              child: InkWell(
+                                onTap: () => _showAddTreeSheet(context),
+                                borderRadius: BorderRadius.circular(8),
+                                child: SizedBox(
+                                  height: 45,
+                                  width: 45,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.add,
+                                      color: context.theme.primaryColor,
+                                      size: 24,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                       /*     Container(
+                                decoration: BoxDecoration(
+                                  color: context.theme.primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: context.theme.primaryColor,
+                                    width: 1,
+                                  ),
+                                ),
+                                child:
+                                IconButton(
+                                  onPressed: () => _showAddTreeSheet(context),
+                                  icon: Icon(
+                                    Icons.add,
+                                    color: context.theme.primaryColor,
+                                    size: 24,
+                                  ),
+                                  tooltip: "Add New Tree",
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(
+                                    minHeight: 45,
+                                    minWidth: 45,
+                                  ),
+                                ),
+                              ),*/
+                          ],
                         ),
                         // SizedBox(height: 12),
                         // _buildTextField(
@@ -108,7 +166,6 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                         // ),
                       ],
                     ),
-
                     SizedBox(height: 8),
 
                     // SECTION 3: Measurements
@@ -1158,6 +1215,202 @@ class AddTreesPage extends GetWidget<AddTreeController> {
         ),
       ),
       isScrollControlled: true,
+    );
+  }
+
+  void _showAddTreeSheet(BuildContext context) {
+    final nameController = TextEditingController();
+    final familyController = TextEditingController();
+    final scientificController = TextEditingController();
+
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              spreadRadius: 5,
+            )
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: context.theme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.park_rounded,
+                      color: context.theme.primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: 14),
+                  Text(
+                    "Add New Tree",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black87,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+
+              _buildSheetField("Tree Name", "Enter tree name", nameController,
+                  Icons.label_rounded),
+              SizedBox(height: 18),
+              _buildSheetField("Family Name", "Enter family name",
+                  familyController, Icons.category_rounded),
+              SizedBox(height: 18),
+              _buildSheetField("Scientific Name", "Enter scientific name",
+                  scientificController, Icons.biotech_rounded),
+
+              SizedBox(height: 32),
+
+              SizedBox(
+                width: double.infinity,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      colors: [
+                        context.theme.primaryColor,
+                        context.theme.primaryColor.withValues(alpha: 0.8),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.theme.primaryColor.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final name = nameController.text.trim();
+                      final family = familyController.text.trim();
+                      final scientific = scientificController.text.trim();
+
+                      if (name.isEmpty || family.isEmpty || scientific.isEmpty) {
+                        Get.snackbar(
+                          "Required",
+                          "All fields are required",
+                          backgroundColor: Colors.red.shade700,
+                          colorText: Colors.white,
+                          snackPosition: SnackPosition.BOTTOM,
+                          margin: EdgeInsets.all(16),
+                          borderRadius: 12,
+                        );
+                        return;
+                      }
+
+                      controller.addNewTree(
+                        name: name,
+                        scientificName: scientific,
+                        familyName: family,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      "Submit",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Widget _buildSheetField(String label, String hint,
+      TextEditingController textController, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey.shade800,
+            ),
+          ),
+        ),
+        TextField(
+          controller: textController,
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            prefixIcon: Icon(icon,
+                size: 20,
+                color: Get.theme.primaryColor.withValues(alpha: 0.6)),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Get.theme.primaryColor, width: 1.5),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ],
     );
   }
 }

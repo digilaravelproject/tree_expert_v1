@@ -329,6 +329,50 @@ class AddTreeController extends GetxController {
     print("DEBUG: Final IDs - TreeID: '$selectedTreeId', ScientificID: '$selectedScientificNameId', FamilyID: '$selectedFamilyId'");
   }
 
+  Future<void> addNewTree({
+    required String name,
+    required String scientificName,
+    required String familyName,
+  }) async {
+    isLoading.value = true;
+    final response = await _treesRepository.addTree(
+      name: name,
+      scientificName: scientificName,
+      familyName: familyName,
+    );
+
+    if (response.success && response.data != null) {
+      try {
+        // Get new tree ID from response: response.data['data']['tree']['id']
+        final int? newTreeId = response.data!['data']?['tree']?['id'];
+        
+        // Refresh the list
+        await fetchTrees();
+        
+        if (newTreeId != null) {
+          // Find the new tree in the list and select it
+          final newTree = trees.firstWhereOrNull((t) => t.id == newTreeId);
+          if (newTree != null) {
+            await selectTree(newTree);
+          }
+        }
+        
+        Get.back(); // Close bottom sheet
+        Get.snackbar("Success", response.message ?? "Tree added successfully", 
+            backgroundColor: Colors.green, colorText: Colors.white);
+      } catch (e) {
+        print("Error processing added tree: $e");
+        Get.back();
+        Get.snackbar("Success", "Tree added, but failed to auto-select. Please select manually.", 
+            backgroundColor: Colors.orange, colorText: Colors.white);
+      }
+    } else {
+      Get.snackbar("Error", response.message ?? "Failed to add tree",
+          backgroundColor: Colors.red, colorText: Colors.white);
+    }
+    isLoading.value = false;
+  }
+
   Future<void> capturePhoto() async {
     print("[AddTree] Navigating to geo camera with saveToGallery=false");
     // Navigate to geo-tag camera page with saveToGallery: false

@@ -166,6 +166,51 @@ class TreesRepository {
       return ApiResponse.error('Error fetching requirements: $e');
     }
   }
+
+  Future<ApiResponse<Map<String, dynamic>>> addTree({
+    required String name,
+    required String scientificName,
+    required String familyName,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.addTree,
+        data: {
+          'name': name,
+          'scientific_name': scientificName,
+          'family_name': familyName,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map && data['success'] == true) {
+          return ApiResponse.success(Map<String, dynamic>.from(data));
+        } else {
+          return ApiResponse.error(data is Map ? (data['message'] ?? 'Failed to add tree') : 'Failed');
+        }
+      } else {
+        // Handle validation errors or other non-200/201 responses
+        final data = response.data;
+        if (data is Map && data['success'] == false) {
+          if (data.containsKey('errors')) {
+            // Extract first error message if available
+            final errors = data['errors'] as Map;
+            if (errors.isNotEmpty) {
+              final firstErrorList = errors.values.first as List;
+              if (firstErrorList.isNotEmpty) {
+                return ApiResponse.error(firstErrorList.first.toString());
+              }
+            }
+          }
+          return ApiResponse.error(data['message'] ?? 'Validation failed');
+        }
+        return ApiResponse.error('Failed to add tree');
+      }
+    } catch (e) {
+      return ApiResponse.error('Error adding tree: $e');
+    }
+  }
 }
 
 
