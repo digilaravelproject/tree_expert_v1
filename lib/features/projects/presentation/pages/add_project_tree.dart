@@ -90,7 +90,7 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                     ),
                   ),
 
-                  SizedBox(height: 24),
+                  SizedBox(height: 16),
 
                   // Form Section
                   Container(
@@ -121,7 +121,7 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                           hint: "Enter project name",
                           icon: Icons.folder_outlined,
                         ),
-                        SizedBox(height: 16),
+                        SizedBox(height: 8),
                         
                         _buildEnhancedTextField(
                           controller: controller.clientNameController,
@@ -129,7 +129,7 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                           hint: "Enter client name",
                           icon: Icons.person_outline,
                         ),
-                        SizedBox(height: 16),
+                        SizedBox(height: 8),
                         
                         _buildEnhancedTextField(
                           controller: controller.companyNameController,
@@ -141,7 +141,7 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                     ),
                   ),
 
-                  SizedBox(height: 20),
+                  SizedBox(height: 10),
 
                   // Location Section
                   Container(
@@ -164,7 +164,7 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                           icon: Icons.location_on,
                           title: "Location Details",
                         ),
-                        SizedBox(height: 16),
+                        SizedBox(height: 8),
                         
                         _buildEnhancedTextField(
                           controller: controller.stateController,

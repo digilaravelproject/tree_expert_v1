@@ -69,6 +69,9 @@ class HomeController extends GetxController {
   final RxList<ProjectListModel> projectsList = <ProjectListModel>[].obs;
   final RxString selectedFilter = 'All'.obs; // All, Ongoing, Completed
   final RxBool isLoadingProjects = false.obs;
+  
+  // Active tree price from API (for payment calculation)
+  final RxDouble activeTreePrice = 0.0.obs;
 
   List<ProjectListModel> get filteredProjects {
     if (selectedFilter.value == 'Completed') {
@@ -391,6 +394,12 @@ class HomeController extends GetxController {
     
     if (response.success && response.data != null) {
       projectsList.value = response.data!;
+      
+      // Load active_tree_price from SharedPrefs (saved by repository)
+      final priceString = SharedPrefs.getString('active_tree_price');
+      if (priceString != null) {
+        activeTreePrice.value = double.tryParse(priceString) ?? 0.0;
+      }
     } else {
       print("Failed to fetch projects: ${response.message}");
     }

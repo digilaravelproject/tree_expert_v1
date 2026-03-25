@@ -120,7 +120,8 @@ flutter:
     - assets/fonts/
     - assets/icons/
     - assets/images/
-    - assets/images/app_logo.jpg
+    - assets/images/app_logo.jpeg
+    - assets/images/app_logo_old.jpg
 
 
   fonts:

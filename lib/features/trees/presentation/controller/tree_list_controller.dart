@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 
+import '../../../../core/constent/app_constants.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/storage/shared_prefs.dart';
 import '../../data/model/tree_model.dart';
 import '../../data/repository/trees_repository.dart';
 
@@ -15,14 +17,17 @@ class TreeListController extends GetxController {
   // Filter States
   final RxString selectedCondition = ''.obs;
   final RxString selectedOwnership = ''.obs;
+  final userId = SharedPrefs.getInt(AppConstants.userIdPref) ?? 0;
 
   void fetchTreesByProject(String projectId) async {
     isLoading.value = true;
     errorMessage.value = '';
     allTrees.clear();
     trees.clear();
-    
-    final response = await _repository.getTreesByProject(projectId);
+
+
+
+    final response = await _repository.getTreesByProject(projectId,userId: userId,);
     
     isLoading.value = false;
     

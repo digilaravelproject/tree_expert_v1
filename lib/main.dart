@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: AppLightTheme.lightTheme,
-      darkTheme: AppDarkTheme.darkTheme, // Use dark theme here
+      //darkTheme: AppDarkTheme.darkTheme, // Use dark theme here
       navigatorKey: navigatorKey, // Add this for ApiChecker navigation
       scaffoldMessengerKey: rootScaffoldMessengerKey, // For global snackbars
       getPages: AppPages.getPages,

@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   // App Info
-  static const String appName = "Tree Expert";
+  static const String appName = "Geo Map Tree";
   static const String defaultTag = "TreeExpert";
 
   // SharedPreferences Keys

@@ -7,9 +7,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constent/app_constants.dart';
 import '../../../../core/storage/shared_prefs.dart';
 import '../../data/model/contact_model.dart';
+import '../../data/model/faq_model.dart';
 import '../../data/model/note_model.dart';
 import '../../data/model/privacy_policy_model.dart';
 import '../../data/model/user_profile_data.dart';
+import '../../data/model/video_tutorial_model.dart';
 import '../../data/repository/profile_repository.dart';
 
 class ProfileController extends GetxController {
@@ -28,6 +30,12 @@ class ProfileController extends GetxController {
   final RxList<NoteModel> notes = <NoteModel>[].obs;
   final Rx<PrivacyPolicyModel?> privacyPolicy = Rx<PrivacyPolicyModel?>(null);
   final RxBool isLoading = false.obs;
+  final RxList<FaqModel> faqs = <FaqModel>[].obs;
+  final RxInt selectedFaqIndex = (-1).obs;
+  final RxList<VideoModel> videos = <VideoModel>[].obs;
+
+
+
 
   var appVersion = "".obs;
 
@@ -36,6 +44,8 @@ class ProfileController extends GetxController {
     super.onInit();
     _getAppVersion();
     fetchUserProfile();
+    fetchFaqs();
+    fetchVideos();
   }
 
   /// Fetch User Profile
@@ -153,8 +163,24 @@ class ProfileController extends GetxController {
     int? userId = SharedPrefs.getInt(AppConstants.userIdPref);
     if (userId == null) return;
 
+    // Get current user profile data to pass required fields
+    if (userProfile.value == null) {
+      Get.snackbar("Error", "User profile not loaded");
+      return;
+    }
+
+    final profile = userProfile.value!;
+    
     isLoading.value = true;
-    final response = await _profileRepository.uploadProfileImage(File(imagePath), userId);
+    final response = await _profileRepository.uploadProfileImage(
+      File(imagePath), 
+      userId,
+      profile.name,
+      profile.email,
+      address: profile.address,
+      gender: profile.gender,
+      aadhaarNumber: profile.aadhaarNumber,
+    );
     
     if (response.success) {
       Get.snackbar("Success", "Profile image updated!");
@@ -174,4 +200,33 @@ class ProfileController extends GetxController {
       await updateProfileImage(image.path);
     }
   }
+
+  /// Get FAQ
+  Future<void> fetchFaqs() async {
+    isLoading.value = true;
+
+    final response = await _profileRepository.getFaqs();
+
+    if (response.success && response.data != null) {
+      faqs.assignAll(response.data!);
+    }
+
+    isLoading.value = false;
+  }
+
+
+  /// Get Videos
+  Future<void> fetchVideos() async {
+    isLoading.value = true;
+
+    final response = await _profileRepository.getVideos();
+
+    if (response.success && response.data != null) {
+      videos.assignAll(response.data!);
+    }
+
+    isLoading.value = false;
+  }
+
+
 }
