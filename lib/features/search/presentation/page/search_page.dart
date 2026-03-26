@@ -31,15 +31,19 @@ class SearchPage extends GetView<ProjectSearchController> {
             decoration: InputDecoration(
               hintText: "Search projects...",
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-              prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey.shade400, size: 18),
+              prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey.shade600, size: 18),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
-                onPressed: () {
+              suffixIcon: GestureDetector(
+                onTap: () {
                   controller.searchInputController.clear();
                   controller.searchProjects('');
                 },
+                child: Icon(
+                  Icons.close,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
               ),
             ),
             style: TextStyle(fontSize: 14, color: Colors.black87),

@@ -16,11 +16,18 @@ class EditProfileController extends GetxController {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final designationController = TextEditingController();
+  final addressController = TextEditingController();
+  final aadhaarController = TextEditingController();
+  final genderController = TextEditingController();
 
   // Observable
   final Rx<File?> selectedImage = Rx<File?>(null);
   final RxBool isLoading = false.obs;
   final RxString profileImageUrl = ''.obs;
+  
+  // Track if fields can be edited
+  final RxBool canEditEmail = true.obs;
+  final RxBool canEditPhone = true.obs;
 
   @override
   void onInit() {
@@ -33,9 +40,16 @@ class EditProfileController extends GetxController {
       final profile = _profileController.userProfile.value!;
       nameController.text = profile.name;
       emailController.text = profile.email;
-      phoneController.text = profile.phone.toString();
+      phoneController.text = profile.phone ?? '';
       designationController.text = profile.designation ?? '';
+      addressController.text = profile.address ?? '';
+      aadhaarController.text = profile.aadhaarNumber ?? '';
+      genderController.text = profile.gender ?? '';
       profileImageUrl.value = profile.profileImage ?? '';
+      
+      // Determine if fields can be edited
+      canEditEmail.value = profile.email.isEmpty;
+      canEditPhone.value = profile.phone?.isEmpty ?? true;
     }
   }
 
@@ -59,42 +73,140 @@ class EditProfileController extends GetxController {
       return;
     }
 
-    if (emailController.text.trim().isEmpty) {
-      Get.snackbar("Error", "Email is required");
-      return;
+    // Validate email if it's editable and filled
+    if (canEditEmail.value && emailController.text.trim().isNotEmpty) {
+      if (!GetUtils.isEmail(emailController.text.trim())) {
+        Get.snackbar("Error", "Please enter a valid email");
+        return;
+      }
+    }
+
+    // Validate phone if it's editable and filled
+    if (canEditPhone.value && phoneController.text.trim().isNotEmpty) {
+      if (phoneController.text.trim().length < 10) {
+        Get.snackbar("Error", "Please enter a valid phone number");
+        return;
+      }
     }
 
     isLoading.value = true;
 
     try {
-      // Upload image if selected
-      if (selectedImage.value != null) {
-        int? userId = SharedPrefs.getInt(AppConstants.userIdPref);
-        if (userId != null) {
-          final response = await _profileRepository.uploadProfileImage(
-            selectedImage.value!,
-            userId,
-          );
-
-          if (!response.success) {
-            Get.snackbar("Error", response.message ?? "Failed to upload image");
-            isLoading.value = false;
-            return;
-          }
-        }
+      int? userId = SharedPrefs.getInt(AppConstants.userIdPref);
+      if (userId == null) {
+        Get.snackbar("Error", "User ID not found");
+        isLoading.value = false;
+        return;
       }
 
-      // Refresh profile data
-      await _profileController.fetchUserProfile();
+      print("Starting profile update for user: $userId");
 
-      Get.snackbar(
-        "Success",
-        "Profile updated successfully!",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // Prepare update data
+      Map<String, dynamic> updateData = {
+        'name': nameController.text.trim(),
+        'designation': designationController.text.trim(),
+        'address': addressController.text.trim(),
+        'gender': genderController.text.trim(),
+        'aadhaar_number': aadhaarController.text.trim(),
+      };
 
-      Get.back();
+      // Always include email - use current profile email if field is not editable
+      if (canEditEmail.value && emailController.text.trim().isNotEmpty) {
+        updateData['email'] = emailController.text.trim();
+      } else {
+        // Use existing email from profile
+        updateData['email'] = _profileController.userProfile.value?.email ?? '';
+      }
+
+      // Add phone if editable and not empty, otherwise use existing phone
+      if (canEditPhone.value && phoneController.text.trim().isNotEmpty) {
+        updateData['phone'] = phoneController.text.trim();
+      } else if (_profileController.userProfile.value?.phone != null) {
+        updateData['phone'] = _profileController.userProfile.value!.phone!;
+      }
+
+      bool apiSuccess = false;
+
+      // If image is selected, use the combined upload method
+      if (selectedImage.value != null) {
+        print("Uploading profile with image");
+        final imageResponse = await _profileRepository.uploadProfileImage(
+          selectedImage.value!,
+          userId,
+          nameController.text.trim(),
+          canEditEmail.value ? emailController.text.trim() : (_profileController.userProfile.value?.email ?? ''),
+          address: addressController.text.trim(),
+          gender: genderController.text.trim(),
+          aadhaarNumber: aadhaarController.text.trim(),
+        );
+
+        if (!imageResponse.success) {
+          print("Image upload failed: ${imageResponse.message}");
+          Get.snackbar(
+            "Error", 
+            imageResponse.message ?? "Failed to update profile",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          isLoading.value = false;
+          return;
+        }
+        apiSuccess = true;
+        print("Image upload successful");
+      } else {
+        print("Updating profile without image");
+        // Update profile data without image
+        final response = await _profileRepository.updateProfile(userId, updateData);
+        
+        if (!response.success) {
+          print("Profile update failed: ${response.message}");
+          Get.snackbar(
+            "Error", 
+            response.message ?? "Failed to update profile",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          isLoading.value = false;
+          return;
+        }
+        apiSuccess = true;
+        print("Profile update successful");
+      }
+
+      if (apiSuccess) {
+        print("Refreshing profile data");
+        // Refresh profile data first
+        await _profileController.fetchUserProfile();
+        print("Profile data refreshed");
+
+        print("Going back to previous screen");
+        // Try multiple navigation methods
+        try {
+          Get.back();
+          print("Get.back() executed successfully");
+        } catch (e) {
+          print("Get.back() failed: $e");
+          // Try alternative navigation
+          if (Get.context != null) {
+            Navigator.of(Get.context!).pop();
+            print("Navigator.pop() executed");
+          }
+        }
+
+        // Show success message after navigation
+        Get.snackbar(
+          "Success",
+          "Profile updated successfully!",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: Duration(seconds: 2),
+        );
+      }
     } catch (e) {
+      print("Error in saveProfile: $e");
       Get.snackbar("Error", "Failed to update profile: $e");
     } finally {
       isLoading.value = false;
@@ -107,6 +219,9 @@ class EditProfileController extends GetxController {
     emailController.dispose();
     phoneController.dispose();
     designationController.dispose();
+    addressController.dispose();
+    aadhaarController.dispose();
+    genderController.dispose();
     super.onClose();
   }
 }

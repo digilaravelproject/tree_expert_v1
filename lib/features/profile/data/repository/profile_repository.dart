@@ -4,10 +4,13 @@ import 'package:get/get.dart';
 import '../../../../core/constent/api_constants.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_response.dart';
+import '../model/faq_model.dart';
 import '../model/user_profile_data.dart';
 import '../model/contact_model.dart';
 import '../model/note_model.dart';
 import '../model/privacy_policy_model.dart';
+import '../model/video_tutorial_model.dart';
+import '../model/payslip_model.dart';
 
 class ProfileRepository {
   final ApiClient _apiClient = Get.find<ApiClient>();
@@ -15,7 +18,7 @@ class ProfileRepository {
   /// Get User Profile
   Future<ApiResponse<UserProfileModel>> getUserProfile(int userId) async {
     try {
-      final response = await _apiClient.get('${ApiConstants.userProfile}/$userId');
+      final response = await _apiClient.get('${ApiConstants.getSingleUserData}/$userId');
       if (response.statusCode == 200) {
         return ApiResponse.success(
           UserProfileModel.fromJson(response.data),
@@ -30,8 +33,49 @@ class ProfileRepository {
     }
   }
 
-  /// Upload Profile Image
-  Future<ApiResponse<Map<String, dynamic>>> uploadProfileImage(File image, int userId) async {
+  /// Update Profile Data (without image)
+  Future<ApiResponse<Map<String, dynamic>>> updateProfile(int userId, Map<String, dynamic> data) async {
+    try {
+      // Filter out empty values to avoid sending blank data, but keep required fields
+      Map<String, dynamic> filteredData = {};
+      
+      // Always include user_id
+      filteredData['user_id'] = userId;
+      
+      // Always include email as it's required by API
+      if (data.containsKey('email')) {
+        filteredData['email'] = data['email'] ?? '';
+      }
+      
+      // Always include name as it's required
+      if (data.containsKey('name')) {
+        filteredData['name'] = data['name'] ?? '';
+      }
+      
+      // Add other non-empty values
+      data.forEach((key, value) {
+        if (key != 'email' && key != 'name' && value != null && value.toString().trim().isNotEmpty) {
+          filteredData[key] = value;
+        }
+      });
+
+      final response = await _apiClient.post(
+        ApiConstants.uploadProfileImage, // Using same endpoint as shown in curl
+        data: filteredData,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApiResponse.success(response.data, message: 'Profile updated successfully');
+      } else {
+        return ApiResponse.error(response.data['message'] ?? 'Update failed', code: response.statusCode);
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+  /// Upload Profile Image (Simple version - only image and user_id)
+  Future<ApiResponse<Map<String, dynamic>>> uploadProfileImageSimple(File image, int userId) async {
     try {
       String fileName = image.path.split('/').last;
       
@@ -47,6 +91,57 @@ class ProfileRepository {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return ApiResponse.success(response.data, message: 'Image uploaded successfully');
+      } else {
+        return ApiResponse.error(response.data['message'] ?? 'Upload failed', code: response.statusCode);
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+  /// Upload Profile Image (Complete version with all fields)
+  Future<ApiResponse<Map<String, dynamic>>> uploadProfileImage(
+    File image, 
+    int userId, 
+    String name, 
+    String email, 
+    {String? address, 
+    String? gender, 
+    String? aadhaarNumber}
+  ) async {
+    try {
+      String fileName = image.path.split('/').last;
+      
+      // Build form data with only non-empty fields
+      Map<String, dynamic> formFields = {
+        'profile_image': await dio.MultipartFile.fromFile(image.path, filename: fileName),
+        'user_id': userId,
+        'name': name,
+        'email': email,
+      };
+
+      // Add optional fields only if they're not empty
+      if (address != null && address.trim().isNotEmpty) {
+        formFields['address'] = address.trim();
+      }
+      
+      if (gender != null && gender.trim().isNotEmpty) {
+        formFields['gender'] = gender.trim();
+      }
+      
+      if (aadhaarNumber != null && aadhaarNumber.trim().isNotEmpty) {
+        formFields['aadhaar_number'] = aadhaarNumber.trim();
+      }
+
+      final formData = dio.FormData.fromMap(formFields);
+
+      final response = await _apiClient.post(
+        ApiConstants.uploadProfileImage,
+        data: formData,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApiResponse.success(response.data, message: 'Profile updated successfully');
       } else {
         return ApiResponse.error(response.data['message'] ?? 'Upload failed', code: response.statusCode);
       }
@@ -127,4 +222,86 @@ class ProfileRepository {
       return ApiResponse.error(e.toString(), error: e);
     }
   }
+
+
+  /// Get FAQs
+  Future<ApiResponse<List<FaqModel>>> getFaqs() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.faqs);
+
+      if (response.statusCode == 200 && response.data['status'] == true) {
+        List<FaqModel> faqs = (response.data['faqs'] as List)
+            .map((e) => FaqModel.fromJson(e))
+            .toList();
+
+        return ApiResponse.success(
+          faqs,
+          message: "FAQs fetched successfully",
+        );
+      } else {
+        return ApiResponse.error(
+          "Failed to fetch FAQs",
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+
+
+  /// Get Videos
+  Future<ApiResponse<List<VideoModel>>> getVideos() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.videos);
+
+      if (response.statusCode == 200 && response.data['status'] == true) {
+        List<VideoModel> videos = (response.data['videos'] as List)
+            .map((e) => VideoModel.fromJson(e))
+            .toList();
+
+        return ApiResponse.success(
+          videos,
+          message: "Videos fetched successfully",
+        );
+      } else {
+        return ApiResponse.error(
+          "Failed to fetch videos",
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+  /// Get User Subscriptions (Payslip)
+  Future<ApiResponse<PayslipResponse>> getUserSubscriptions(int userId) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.userSubscriptions,
+        data: {
+          'user_id': userId,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        PayslipResponse payslipResponse = PayslipResponse.fromJson(response.data);
+        return ApiResponse.success(
+          payslipResponse,
+          message: "Subscriptions fetched successfully",
+        );
+      } else {
+        return ApiResponse.error(
+          "Failed to fetch subscriptions",
+          code: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(e.toString(), error: e);
+    }
+  }
+
+
 }

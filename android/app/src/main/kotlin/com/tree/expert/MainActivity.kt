@@ -1,4 +1,4 @@
-package emperor.tree.expert
+package com.tree.expert
 
 import io.flutter.embedding.android.FlutterActivity
 

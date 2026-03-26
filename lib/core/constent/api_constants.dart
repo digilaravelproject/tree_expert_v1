@@ -15,8 +15,9 @@ class ApiConstants {
 
     static const String loginEmailWithPassward = "login";
     static const String logout = "logout";
-    static const String userProfile = "users"; // users/{id}
+    static const String getSingleUserData = "users"; // users/{id}
     static const String uploadProfileImage = "upload-profile-image";
+    static const String updateProfileData = "upload-profile-image";
     static const String getTreeRequirements = "get_tree_requirements";
 
     // Password Reset Endpoints
@@ -31,6 +32,10 @@ class ApiConstants {
     static const String privacyPolicy = "privacy-policy";
     static const String getStates = "states";
     static const String projectList = "project/list";
+    static const String projectAssignOfficer = "project_assign_officer";
+    static const String faqs = "faqs";
+    static const String videos = "videos";
+    static const String userSubscriptions = "user-subscriptions";
 
     static const String createProject = "customer/create-project";
     static const String updateProject = "customer/projects";
@@ -40,10 +45,13 @@ class ApiConstants {
     static const String treeMeasure = "tree/measure";
     static const String saveTrees = "trees-add";
     static const String treeInProject = "tree_in_project";
+    static const String addTree = "tree/add";
     static const String getProjectExportLinks = "get_project_export_links";
 
 
-
+    // Payment
+    static const String createPaymentOrder = "payment/create-order";
+    static const String paymentVerify = "payment/verify";
 
 
 }

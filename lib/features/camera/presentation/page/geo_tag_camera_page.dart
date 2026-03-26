@@ -19,7 +19,6 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
         if (!controller.isCameraInitialized.value) {
           return const Center(child: CircularProgressIndicator(color: Colors.white));
         }
-
         return Stack(
           children: [
             // --- CAPTURE AREA (Camera + Overlay) ---
@@ -165,6 +164,21 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
                                          style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
                                        )),
                                      ),
+                                     
+                                     // Project/Tree Info (only when from Add Tree page)
+                                     if (controller.isFromAddTree) ...[
+                                       SizedBox(height: 6),
+                                       Row(
+                                         children: [
+                                           Icon(Icons.folder_outlined, color: Colors.greenAccent, size: 14),
+                                           SizedBox(width: 4),
+                                           Obx(() => Text(
+                                             "Project: ${controller.projectNo.value}  |  Tree: ${controller.treeNo.value}",
+                                             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                           )),
+                                         ],
+                                       ),
+                                     ],
                                    ],
                                  ),
                                ),

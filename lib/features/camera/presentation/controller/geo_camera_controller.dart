@@ -26,6 +26,11 @@ class GeoCameraController extends GetxController {
   var accuracy = "0 m".obs;
   var dateTime = "".obs;
 
+  // Project/Tree Info (when navigating from Add Tree page)
+  var projectNo = "".obs;
+  var treeNo = "".obs;
+  bool get isFromAddTree => projectNo.value.isNotEmpty;
+
   // Map Data (LatLong2)
   var initialCameraPosition = Rx<LatLng>(LatLng(0, 0));
 
@@ -37,6 +42,13 @@ class GeoCameraController extends GetxController {
     _initializeCamera();
     _getCurrentLocation();
     _updateTime();
+    
+    // Read project/tree info from arguments (if navigating from Add Tree page)
+    final args = Get.arguments;
+    if (args is Map) {
+      projectNo.value = args['projectNo']?.toString() ?? '';
+      treeNo.value = args['treeNo']?.toString() ?? '';
+    }
   }
 
   @override

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 class TreeEntry {
   String? wardPlotNo;
   String? treeNo;
@@ -55,7 +58,32 @@ class TreeEntry {
     this.photos = const [],
   });
   
-  Map<String, dynamic> toJson() {
+  /// Convert image file paths to base64 strings
+  Future<List<String>> _convertPhotosToBase64() async {
+    List<String> base64Images = [];
+    
+    for (String photoPath in photos) {
+      try {
+        final file = File(photoPath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          final base64String = base64Encode(bytes);
+          base64Images.add(base64String);
+        }
+      } catch (e) {
+        print("Error converting photo to base64: $e");
+        // Skip this photo if conversion fails
+      }
+    }
+    
+    return base64Images;
+  }
+  
+  Future<Map<String, dynamic>> toJson() async {
+    // Convert photos to base64 and join with commas
+    final base64Images = await _convertPhotosToBase64();
+    final photosString = base64Images.join(',');
+    
     return {
       'project_id': projectId,
       'user_id': userId,
@@ -82,7 +110,7 @@ class TreeEntry {
       'longitude': longitude,
       'accuracy': accuracy,
       'unit': unit,
-      'photos': photos, // This might need handling for file upload vs path
+      'tree_image_upload': photosString, // Base64 images as comma-separated string
     };
   }
 }

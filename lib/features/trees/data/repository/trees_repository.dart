@@ -53,9 +53,15 @@ class TreesRepository {
     }
   }
   
-  Future<ApiResponse<List<TreeModel>>> getTreesByProject(String projectId) async {
+  Future<ApiResponse<List<TreeModel>>> getTreesByProject(String projectId, {int? userId}) async {
     try {
-      final response = await _apiClient.get("${ApiConstants.treeInProject}/$projectId");
+      final response = await _apiClient.post(
+        ApiConstants.treeInProject,
+        data: {
+          'project_id': int.parse(projectId),
+          'user_id': userId,
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -66,7 +72,6 @@ class TreesRepository {
               .toList();
           return ApiResponse.success(trees);
         } else {
-           // Handle direct list if API changes, but user response shows {status: true, data: [...]}
            return ApiResponse.error(data is Map 
             ? (data['message'] ?? 'Failed to load project trees') 
             : 'Unexpected response');
@@ -149,7 +154,8 @@ class TreesRepository {
       if (response.statusCode == 200) {
         final data = response.data;
         if (data is Map && data['success'] == true) {
-             return ApiResponse.success(Map<String, dynamic>.from(data['requirements']));
+             // Return full data to access ward_no and other fields
+             return ApiResponse.success(Map<String, dynamic>.from(data));
         } else {
              return ApiResponse.error(data is Map ? (data['message'] ?? 'Failed to fetch requirements') : 'Failed');
         }
@@ -160,4 +166,54 @@ class TreesRepository {
       return ApiResponse.error('Error fetching requirements: $e');
     }
   }
+
+  Future<ApiResponse<Map<String, dynamic>>> addTree({
+    required String name,
+    required String scientificName,
+    required String familyName,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.addTree,
+        data: {
+          'name': name,
+          'scientific_name': scientificName,
+          'family_name': familyName,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map && data['success'] == true) {
+          return ApiResponse.success(Map<String, dynamic>.from(data));
+        } else {
+          return ApiResponse.error(data is Map ? (data['message'] ?? 'Failed to add tree') : 'Failed');
+        }
+      } else {
+        // Handle validation errors or other non-200/201 responses
+        final data = response.data;
+        if (data is Map && data['success'] == false) {
+          if (data.containsKey('errors')) {
+            // Extract first error message if available
+            final errors = data['errors'] as Map;
+            if (errors.isNotEmpty) {
+              final firstErrorList = errors.values.first as List;
+              if (firstErrorList.isNotEmpty) {
+                return ApiResponse.error(firstErrorList.first.toString());
+              }
+            }
+          }
+          return ApiResponse.error(data['message'] ?? 'Validation failed');
+        }
+        return ApiResponse.error('Failed to add tree');
+      }
+    } catch (e) {
+      return ApiResponse.error('Error adding tree: $e');
+    }
+  }
 }
+
+
+
+
+/*//if (userId != null) */

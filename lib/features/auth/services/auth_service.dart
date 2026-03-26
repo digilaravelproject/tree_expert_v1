@@ -89,7 +89,8 @@ class AuthService extends GetxService {
         if (data['user'] != null && data['user']['is_verified'] != null) {
              isVerified = int.tryParse(data['user']['is_verified'].toString()) ?? 0;
         }
-        
+
+
         // Also check is_new_user flag as fallback or combined logic if needed
         bool isNewUser = (isVerified == 0);
 
@@ -175,7 +176,7 @@ class AuthService extends GetxService {
       }
 
       final response = await _apiClient.post(
-        ApiConstants.uploadProfileImage,
+        ApiConstants.updateProfileData,
         data: dio.FormData.fromMap(data),
       );
 
@@ -191,6 +192,7 @@ class AuthService extends GetxService {
           if (data['data']['id'] != null) {
             await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['data']['id'].toString()) ?? 0);
           }
+
 
           // Update login state & role
           int roleId = data['data']['role_id'] ?? 0;
@@ -415,7 +417,7 @@ class AuthService extends GetxService {
   Future<ApiResponse<Map<String, dynamic>>> getUserProfile(int userId) async {
     try {
       final response = await _apiClient.get(
-        '${ApiConstants.userProfile}/$userId',
+        '${ApiConstants.getSingleUserData}/$userId',
       );
 
       if (response.statusCode == 200) {

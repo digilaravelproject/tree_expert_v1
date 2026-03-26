@@ -6,13 +6,16 @@ import '../../../projects/data/repository/projects_repository.dart';
 class DownloadOptionsBottomSheet extends StatefulWidget {
   final String projectName;
   final int projectId;
+  final List<int>? selectedTreeIds;
+  final Map<String, dynamic>? exportLinks;
 
   const DownloadOptionsBottomSheet({
     super.key,
     required this.projectName,
     required this.projectId,
+    this.selectedTreeIds,
+    this.exportLinks,
   });
-
   @override
   State<DownloadOptionsBottomSheet> createState() => _DownloadOptionsBottomSheetState();
 }
@@ -26,7 +29,21 @@ class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet>
   @override
   void initState() {
     super.initState();
-    _fetchLinks();
+    // If exportLinks are provided, use them directly; otherwise fetch them
+    if (widget.exportLinks != null) {
+      _setLinksFromExportData(widget.exportLinks!);
+    } else {
+      _fetchLinks();
+    }
+  }
+
+  void _setLinksFromExportData(Map<String, dynamic> exportLinks) {
+    setState(() {
+      _links = Map<String, String>.from(
+        exportLinks.map((key, value) => MapEntry(key.toString(), value.toString()))
+      );
+      _isLoading = false;
+    });
   }
 
   Future<void> _fetchLinks() async {
@@ -35,7 +52,10 @@ class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet>
       _error = null;
     });
 
-    final response = await _repository.getProjectExportLinks(widget.projectId.toString());
+    final response = await _repository.getProjectExportLinks(
+      widget.projectId.toString(),
+      treeIds: widget.selectedTreeIds,
+    );
 
     if (response.success && response.data != null) {
       final linksData = response.data!['links'];
@@ -119,6 +139,17 @@ class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (widget.selectedTreeIds != null && widget.selectedTreeIds!.isNotEmpty) ...[
+                        SizedBox(height: 2),
+                        Text(
+                          "Selected Trees: ${widget.selectedTreeIds!.length}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -207,6 +238,14 @@ class _DownloadOptionsBottomSheetState extends State<DownloadOptionsBottomSheet>
             subtitle: "Download KML file",
             color: Colors.blue,
             onTap: () => _handleLaunch(_links!['kml']!),
+          ),
+        if (_links!.containsKey('imgs_zip'))
+          _buildDownloadOption(
+            icon: Icons.map,
+            title: "Images",
+            subtitle: "Download Image file",
+            color: Colors.blue,
+            onTap: () => _handleLaunch(_links!['imgs_zip']!),
           ),
       ],
     );

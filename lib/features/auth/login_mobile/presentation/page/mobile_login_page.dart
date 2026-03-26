@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,7 +171,7 @@ class MobileLoginPage extends GetWidget<MobileLoginController> {
                           ),
                         ),
 
-                        const SizedBox(height: 12),
+                       // const SizedBox(height: 8),
 
 
                         // Terms and Privacy
@@ -216,6 +217,56 @@ class MobileLoginPage extends GetWidget<MobileLoginController> {
                             ),
                           ),
                         ),
+                        SizedBox(height: 16,),
+                        Center(
+                          child: Container(
+                            //margin: const EdgeInsets.only(bottom: 1),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)], // Premium Green Gradient
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  Get.toNamed(AppRoutes.geoTagCamera);
+                                },
+                                borderRadius: BorderRadius.circular(30),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(CupertinoIcons.camera_viewfinder, color: Colors.white, size: 22),
+                                      const SizedBox(width: 10),
+                                      const Text(
+                                        "Geo Tag Camera",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                         SizedBox(height: context.mediaQueryPadding.bottom),
                       ],
                     ),
@@ -226,6 +277,55 @@ class MobileLoginPage extends GetWidget<MobileLoginController> {
           ),
         ],
       ),
+      // floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      // floatingActionButton:
+      // Container(
+      //   margin: const EdgeInsets.only(bottom: 20),
+      //   decoration: BoxDecoration(
+      //     borderRadius: BorderRadius.circular(30),
+      //     gradient: const LinearGradient(
+      //       colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)], // Premium Green Gradient
+      //       begin: Alignment.topLeft,
+      //       end: Alignment.bottomRight,
+      //     ),
+      //     boxShadow: [
+      //       BoxShadow(
+      //         color: Colors.green.withOpacity(0.4),
+      //         blurRadius: 12,
+      //         offset: const Offset(0, 6),
+      //         spreadRadius: 2,
+      //       ),
+      //     ],
+      //   ),
+      //   child: Material(
+      //     color: Colors.transparent,
+      //     child: InkWell(
+      //       onTap: () {
+      //         Get.toNamed(AppRoutes.geoTagCamera);
+      //       },
+      //       borderRadius: BorderRadius.circular(30),
+      //       child: Padding(
+      //         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      //         child: Row(
+      //           mainAxisSize: MainAxisSize.min,
+      //           children: [
+      //             const Icon(CupertinoIcons.camera_viewfinder, color: Colors.white, size: 22),
+      //             const SizedBox(width: 10),
+      //             const Text(
+      //               "Geo Tag Camera",
+      //               style: TextStyle(
+      //                 color: Colors.white,
+      //                 fontSize: 16,
+      //                 fontWeight: FontWeight.w600,
+      //                 letterSpacing: 0.5,
+      //               ),
+      //             ),
+      //           ],
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+      // ),
     );
   }
 }

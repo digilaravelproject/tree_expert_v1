@@ -179,7 +179,7 @@ class SplashPage extends GetWidget<InitController> {
                   ),
                   child: CustomImageView(
                     imagePath: AppAssets.imgAppLogo,
-                    fit: BoxFit.contain,
+                    fit: BoxFit.cover,
                     radius: BorderRadius.circular(Get.width * 0.22),
                   ),
                 ),
@@ -266,7 +266,7 @@ class SplashPage extends GetWidget<InitController> {
           ],
         ).createShader(bounds),
         child: Text(
-          "Tree Expert",
+          "Geo Map Tree",
           style: context.textTheme.headlineLarge!.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
