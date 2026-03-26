@@ -63,12 +63,36 @@ dependencies:
   flutter_html: ^3.0.0
   flutter_rating_bar: ^4.0.1
   shimmer: ^3.0.0
+  video_player: ^2.10.1
+  razorpay_flutter: ^1.4.0
+  flutter_launcher_icons: ^0.14.4
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   change_app_package_name: ^1.5.0
+
+
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_logo.jpeg"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/app_logo.jpeg"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/images/app_logo.jpeg"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/images/app_logo.jpeg"
 
 dependency_overrides:
 
@@ -94,29 +118,36 @@ flutter:
   assets:
     - assets/anim/
     - assets/fonts/
-    - assets/images/
     - assets/icons/
+    - assets/images/
+    - assets/images/app_logo.jpg
 
 
   fonts:
-    - family: Nunito
+    - family: Nunito-Bold
+      fonts:
+        - asset: assets/fonts/Nunito-Bold.ttf
+    - family: Nunito-ExtraBold
+      fonts:
+        - asset: assets/fonts/Nunito-ExtraBold.ttf
+    - family: Nunito-ExtraLight
       fonts:
         - asset: assets/fonts/Nunito-ExtraLight.ttf
-          weight: 200
+    - family: Nunito-Light
+      fonts:
         - asset: assets/fonts/Nunito-Light.ttf
-          weight: 300
-        - asset: assets/fonts/Nunito-Regular.ttf
-          weight: 400
+    - family: Nunito-Medium
+      fonts:
         - asset: assets/fonts/Nunito-Medium.ttf
-          weight: 500
+    - family: Nunito-Regular
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+    - family: Nunito-SemiBold
+      fonts:
         - asset: assets/fonts/Nunito-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Nunito-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Nunito-ExtraBold.ttf
-          weight: 800
+    - family: dark_black_font
+      fonts:
         - asset: assets/fonts/dark_black_font.ttf
-          weight: 900
 
 
   # To add assets to your application, add an assets section, like this:
