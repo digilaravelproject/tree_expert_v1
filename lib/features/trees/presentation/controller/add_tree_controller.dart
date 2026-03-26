@@ -242,7 +242,7 @@ class AddTreeController extends GetxController {
         canopyController.text = (canopyM * 3.28084).toStringAsFixed(2);
       }
       
-      ageController.text = (data['estimated_age_years'] ?? 0).toString();
+      ageController.text = (data['estimated_age_years'] ?? 0).round().toString();
     }
   }
 
@@ -477,19 +477,23 @@ class AddTreeController extends GetxController {
     }
   }
 
-  bool _validateCurrentForm() {
+  bool _validateCurrentForm({bool showError = true}) {
     if (isFetchingDetails.value) {
-       Get.snackbar("Wait", "Fetching tree details, please wait...", 
-          snackPosition: SnackPosition.BOTTOM);
-       return false;
+      if (showError) {
+        Get.snackbar("Wait", "Fetching tree details, please wait...",
+            snackPosition: SnackPosition.BOTTOM);
+      }
+      return false;
     }
-    
+
     // 1. Always required (System requirement)
     if (treeNameController.text.trim().isEmpty) {
-      Get.snackbar("Required", "Tree name is required", 
-          snackPosition: SnackPosition.BOTTOM, 
-          backgroundColor: Colors.red, 
-          colorText: Colors.white);
+      if (showError) {
+        Get.snackbar("Required", "Tree name is required",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white);
+      }
       return false;
     }
 
@@ -520,76 +524,108 @@ class AddTreeController extends GetxController {
     // Iterate through requirements provided by API
     for (var entry in req.entries) {
       final key = entry.key;
-      final fieldData = entry.value; 
-      
+      final fieldData = entry.value;
+
       // Handle Nested Structure: "field": { "is_required": { "is_required": true, ... } }
       if (fieldData is! Map) continue;
-      
+
       // Check if 'is_required' key exists and is a Map (The nested object)
-      dynamic rules = fieldData; 
-      if (fieldData.containsKey('is_required') && fieldData['is_required'] is Map) {
-         rules = fieldData['is_required'];
+      dynamic rules = fieldData;
+      if (fieldData.containsKey('is_required') &&
+          fieldData['is_required'] is Map) {
+        rules = fieldData['is_required'];
       } else {
-         // Fallback if structure is flat (just in case)
-         rules = fieldData;
+        // Fallback if structure is flat (just in case)
+        rules = fieldData;
       }
 
       final isRequired = rules['is_required'] == true;
       final minValue = rules['min_value'];
       final maxValue = rules['max_value'];
-      
+
       // Special Handling for Images
       if (key == 'all_captured_images') {
-         // Check Required
-         if (isRequired && capturedPhotos.isEmpty) {
+        // Check Required
+        if (isRequired && capturedPhotos.isEmpty) {
+          if (showError) {
             firstError = "At least one tree image is required";
-            break;
-         }
-         // Check Min
-         if (minValue != null && capturedPhotos.length < (minValue as num).toInt()) {
+          } else {
+            return false;
+          }
+          break;
+        }
+        // Check Min
+        if (minValue != null &&
+            capturedPhotos.length < (minValue as num).toInt()) {
+          if (showError) {
             firstError = "At least $minValue images are required";
-            break;
-         }
-         // Check Max
-         if (maxValue != null && capturedPhotos.length > (maxValue as num).toInt()) {
+          } else {
+            return false;
+          }
+          break;
+        }
+        // Check Max
+        if (maxValue != null &&
+            capturedPhotos.length > (maxValue as num).toInt()) {
+          if (showError) {
             firstError = "Maximum $maxValue images allowed";
-            break;
-         }
-         continue; 
+          } else {
+            return false;
+          }
+          break;
+        }
+        continue;
       }
 
       // Handling Text Fields and Dropdowns
       if (fieldValues.containsKey(key)) {
-         String valueStr = fieldValues[key] == null ? "" : fieldValues[key]!.trim();
-         
-         // 1. Check Required
-         if (isRequired && valueStr.isEmpty) {
+        String valueStr =
+            fieldValues[key] == null ? "" : fieldValues[key]!.trim();
+
+        // 1. Check Required
+        if (isRequired && valueStr.isEmpty) {
+          if (showError) {
             firstError = "${_formatFieldName(key)} is required";
-            break;
-         }
-         
-         // 2. Check Min/Max (Only if value exists)
-         if (valueStr.isNotEmpty) {
-            final numValue = double.tryParse(valueStr);
-            if (numValue != null) {
-               if (minValue != null && numValue < (minValue as num).toDouble()) {
-                  firstError = "${_formatFieldName(key)} must be at least $minValue";
-                  break;
-               }
-               if (maxValue != null && numValue > (maxValue as num).toDouble()) {
-                  firstError = "${_formatFieldName(key)} must be at most $maxValue";
-                  break;
-               }
+          } else {
+            return false;
+          }
+          break;
+        }
+
+        // 2. Check Min/Max (Only if value exists)
+        if (valueStr.isNotEmpty) {
+          final numValue = double.tryParse(valueStr);
+          if (numValue != null) {
+            if (minValue != null && numValue < (minValue as num).toDouble()) {
+              if (showError) {
+                firstError =
+                    "${_formatFieldName(key)} must be at least $minValue";
+              } else {
+                return false;
+              }
+              break;
             }
-         }
+            if (maxValue != null && numValue > (maxValue as num).toDouble()) {
+              if (showError) {
+                firstError =
+                    "${_formatFieldName(key)} must be at most $maxValue";
+              } else {
+                return false;
+              }
+              break;
+            }
+          }
+        }
       }
     }
 
     if (firstError != null) {
-      Get.snackbar("Validation Error", firstError, 
-          snackPosition: SnackPosition.BOTTOM, 
-          backgroundColor: Colors.red, 
-          colorText: Colors.white);
+      if (showError) {
+        Get.snackbar("Validation Error", firstError,
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white);
+      }
       return false;
     }
 
@@ -747,52 +783,23 @@ class AddTreeController extends GetxController {
   }
 
   Future<void> handleSubmit() async {
-    // 1. Validate the current form first
-     if (!_validateCurrentForm()) {
-      return; 
-    }
-
-    // 2. Check if adding this tree would exceed the limit
-    if (!canAddMoreTrees) {
-      Get.snackbar(
-        "Limit Reached", 
-        "Cannot add more trees. Project limit: ${projectLimit ?? 'unlimited'}", 
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    // 3. Save current form logic first
-    _saveCurrentTreeToLocal();
-
-    // 4. Check if multiple add is enabled
-    if (isAddMultiple.value) {
-      // Logic for adding to local array and resetting
-      Get.snackbar(
-        "Added", 
-        "Tree saved to list. You can add more.", 
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: Duration(seconds: 1)
-      );
-      
-      // Move index forward
-      currentTreeIndex.value++;
-      
-      // Reset for next
-      _resetFormForNext();
-      
-      // IMPORTANT: Uncheck the multiple add checkbox after adding one tree
-      isAddMultiple.value = false;
-      
-    } else {
-      // Logic for submitting everything
+    // 1. Try to validate and save the current tree
+    if (_validateCurrentForm(showError: false)) {
+      // Current tree is valid, save it first
+      _saveCurrentTreeToLocal();
       await submitAllStoredTrees();
+    } else {
+      // Current tree is invalid
+      // If we have previously saved trees, submit them
+      if (localTrees.isNotEmpty) {
+        await submitAllStoredTrees();
+      } else {
+        // Nothing saved and current is invalid, show the error now
+        _validateCurrentForm(showError: true);
+      }
     }
   }
+
 
   Future<void> submitAllStoredTrees() async {
     if (localTrees.isEmpty) {

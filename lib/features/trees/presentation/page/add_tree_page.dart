@@ -582,7 +582,35 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                             child: ElevatedButton.icon(
                               onPressed: controller.isLoading.value
                                   ? null
-                                  : controller.onPrevious,
+                                  : () async {
+                                      final confirmed = await Get.dialog<bool>(
+                                        AlertDialog(
+                                          title: const Text("Go to Previous?"),
+                                          content: const Text(
+                                              "Are you sure you want to go back to the previous tree?"),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Get.back(result: false), // Stay
+                                              child: const Text("No"),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Get.theme.primaryColor,
+                                                  foregroundColor: Colors.white),
+                                              onPressed: () =>
+                                                  Get.back(result: true), // Go back
+                                              child: const Text("Yes, Go Back"),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirmed == true) {
+                                        controller.onPrevious();
+                                      }
+                                    },
                               icon: Icon(Icons.arrow_back, size: 18),
                               label: Text("Previous"),
                               style: ElevatedButton.styleFrom(
