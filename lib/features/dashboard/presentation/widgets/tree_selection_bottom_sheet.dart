@@ -417,11 +417,22 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                     SizedBox(height: 8),
                     DropdownButtonFormField<int>(
                       value: _selectedFromCount,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       ),
                       menuMaxHeight: 300,
+                      selectedItemBuilder: (context) {
+                        return countList.map((count) {
+                          final tree = _allTrees[count - 1];
+                          return Text(
+                            "$count-${tree.treeName}",
+                            style: TextStyle(fontSize: 11),
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        }).toList();
+                      },
                       items: countList.map((count) {
                         final tree = _allTrees[count - 1];
                         final isPaid = tree.payment == 1;
@@ -429,18 +440,27 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                         return DropdownMenuItem(
                           value: count, 
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text("$count-",style: TextStyle(fontSize: 12),),
-                              Text("${tree.treeName}",style: TextStyle(fontSize: 12),),
-                              SizedBox(width: 2),
+                              Text("$count-",style: TextStyle(fontSize: 11),),
+                              ConstrainedBox(
+                                constraints: BoxConstraints(maxWidth: 80),
+                                child: Text(
+                                  "${tree.treeName}",
+                                  style: TextStyle(fontSize: 11),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              SizedBox(width: 4),
                               Text("(${tree.treeNo})", style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
-                              SizedBox(width: 2),
+                              SizedBox(width: 4),
                               if (isFree)
-                                Icon(CupertinoIcons.checkmark_seal_fill, size: 16, color: Colors.blue)
+                                Icon(CupertinoIcons.checkmark_seal_fill, size: 14, color: Colors.blue)
                               else if (isPaid) 
-                                Icon(Icons.check_circle, size: 16, color: Colors.green)
+                                Icon(Icons.check_circle, size: 14, color: Colors.green)
                               else
-                                Icon(Icons.radio_button_unchecked, size: 16, color: Colors.orange),
+                                Icon(Icons.radio_button_unchecked, size: 14, color: Colors.orange),
                             ],
                           )
                         );
@@ -449,6 +469,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                          if (val != null) {
                            setState(() {
                              _selectedFromCount = val;
+                             _exportLinksData = null; // Reset previous access check
                              
                              // Reset To selection if it's now invalid
                              if (_selectedToCount != null && _selectedToCount! < val) {
@@ -473,11 +494,26 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                     SizedBox(height: 8),
                     DropdownButtonFormField<int>(
                       value: _selectedToCount,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       ),
                       menuMaxHeight: 300,
+                      selectedItemBuilder: (context) {
+                        final toItems = _selectedFromCount == null 
+                          ? countList 
+                          : countList.where((count) => count >= _selectedFromCount!).toList();
+                          
+                        return toItems.map((count) {
+                          final tree = _allTrees[count - 1];
+                          return Text(
+                            "$count-${tree.treeName}",
+                            style: TextStyle(fontSize: 11),
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        }).toList();
+                      },
                       items: _selectedFromCount == null 
                         ? [] 
                         : countList.where((count) => count >= _selectedFromCount!).map((count) {
@@ -487,18 +523,27 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                             return DropdownMenuItem(
                               value: count, 
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text("$count-",style: TextStyle(fontSize: 12),),
-                                  Text("${tree.treeName}",style: TextStyle(fontSize: 12),),
-                                  SizedBox(width: 2),
-                                  Text("(${tree.treeNo})", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                                  SizedBox(width: 2),
+                                  Text("$count-",style: TextStyle(fontSize: 11),),
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(maxWidth: 80),
+                                    child: Text(
+                                      "${tree.treeName}",
+                                      style: TextStyle(fontSize: 11),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text("(${tree.treeNo})", style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                                  SizedBox(width: 4),
                                   if (isFree)
-                                    Icon(CupertinoIcons.checkmark_seal_fill, size: 16, color: Colors.blue)
+                                    Icon(CupertinoIcons.checkmark_seal_fill, size: 14, color: Colors.blue)
                                   else if (isPaid) 
-                                    Icon(Icons.check_circle, size: 16, color: Colors.green)
+                                    Icon(Icons.check_circle, size: 14, color: Colors.green)
                                   else
-                                    Icon(Icons.radio_button_unchecked, size: 16, color: Colors.orange),
+                                    Icon(Icons.radio_button_unchecked, size: 14, color: Colors.orange),
                                 ],
                               )
                             );
@@ -507,6 +552,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                         if (val != null) {
                           setState(() {
                             _selectedToCount = val;
+                            _exportLinksData = null; // Reset previous access check
                           });
                         }
                       },
@@ -537,7 +583,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    "Selected: $_selectedTreeCount trees | Paid: ${_selectedTreeCount - _selectedUnpaidTreeCount} | Unpaid: $_selectedUnpaidTreeCount | Free: $_selectedFreeTreeCount",
+                    "Selected: ${_selectedTrees.length} trees | Paid: ${_selectedTrees.length - _selectedUnpaidTreeCount} | Unpaid: $_selectedUnpaidTreeCount | Free: $_selectedFreeTreeCount",
                     style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
                   ),
                 ],

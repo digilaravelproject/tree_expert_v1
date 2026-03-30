@@ -19,6 +19,14 @@ class AddTreesPage extends GetWidget<AddTreeController> {
               )),
           centerTitle: true,
           elevation: 0,
+          actions: [
+            IconButton(
+              onPressed: () => controller.resetCurrentForm(), 
+              icon: Icon(Icons.refresh, color: Colors.orange.shade800),
+              tooltip: "Reset Form",
+            ),
+            SizedBox(width: 8),
+          ],
         ),
         body: Obx(() => Stack(
           children: [
@@ -174,17 +182,17 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                      // icon: Icons.straighten,
                       children: [
                         // Unit Toggle
-                        Obx(() => Row(
+                        /*Obx(() => Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: [
                                 Text("Unit: ", style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
-                                /*ChoiceChip(
-                                  label: Text("Meter"),
-                                  selected:
-                                      controller.selectedUnit.value == 'Meter',
-                                  onSelected: (_) => controller.toggleUnit(),
-                                ),
-                                SizedBox(width: 10),*/
+                                // ChoiceChip(
+                                //   label: Text("Meter"),
+                                //   selected:
+                                //       controller.selectedUnit.value == 'Meter',
+                                //   onSelected: (_) => controller.toggleUnit(),
+                                // ),
+                                // SizedBox(width: 10),
                                 ChoiceChip(
                                   label: Text("Feet"),
                                   selected:
@@ -192,7 +200,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                                   onSelected: (_) => controller.toggleUnit(),
                                 ),
                               ],
-                            )),
+                            )),*/
                         SizedBox(height: 8),
                         Row(
                           children: [
@@ -635,7 +643,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                                 ? null
                                 : controller.onContinue,
                             icon: Icon(Icons.add, size: 18),
-                            label: Text("Add & Next"),
+                            label: Text("Save & Add Next"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green.shade700,
                               foregroundColor: Colors.white,
@@ -661,7 +669,7 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                         icon: Icon(Icons.check_circle, size: 18),
                         label: Text(
                           controller.localTrees.isEmpty
-                              ? "Submit"
+                              ? "Submit Current Tree"
                               : "Final Submit (${controller.localTrees.length + 1} trees)",
                           style: TextStyle(
                             fontSize: 14,
@@ -740,26 +748,42 @@ class AddTreesPage extends GetWidget<AddTreeController> {
   }
 
   Future<bool> _onWillPop() async {
-    return await Get.dialog<bool>(
-          AlertDialog(
-            title: Text("Discard Changes?"),
-            content: Text(
-                "Are you sure you want to discard your changes and go back?"),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(result: false), // Stay
-                child: Text("No"),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red, foregroundColor: Colors.white),
-                onPressed: () => Get.back(result: true), // Pop
-                child: Text("Yes, Discard"),
-              ),
-            ],
+    final result = await Get.dialog<String>(
+      AlertDialog(
+        title: const Text("Exit Options"),
+        content: const Text("Would you like to save your current work as a draft before exiting?"),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: "stay"),
+            child: const Text("Cancel"),
           ),
-        ) ??
-        false;
+          TextButton(
+            onPressed: () => Get.back(result: "discard"),
+            child: Text("Discard Changes", style: TextStyle(color: Colors.red.shade700)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade700,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Get.back(result: "draft"),
+            child: const Text("Save as Draft"),
+          ),
+        ],
+      ),
+    );
+
+    if (result == "draft") {
+      await controller.saveAsDraftAndExit();
+      return true;
+    } else if (result == "discard") {
+      controller.discardAllAndExit();
+      return true;
+    }
+    return false;
   }
 
   Widget _buildSectionCard({
@@ -1347,10 +1371,10 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                       final family = familyController.text.trim();
                       final scientific = scientificController.text.trim();
 
-                      if (name.isEmpty || family.isEmpty || scientific.isEmpty) {
+                      if (name.isEmpty) {
                         Get.snackbar(
                           "Required",
-                          "All fields are required",
+                          "Tree name is required",
                           backgroundColor: Colors.red.shade700,
                           colorText: Colors.white,
                           snackPosition: SnackPosition.BOTTOM,
@@ -1360,10 +1384,33 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                         return;
                       }
 
-                      controller.addNewTree(
-                        name: name,
-                        scientificName: scientific,
-                        familyName: family,
+                      // Show confirmation dialog before submission
+                      Get.dialog(
+                        AlertDialog(
+                          title: Text("Confirm Action"),
+                          content: Text("Do you want to add '$name' to your tree list?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Get.back(),
+                              child: Text("No", style: TextStyle(color: Colors.grey)),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Get.back(); // Close dialog
+                                controller.addNewTree(
+                                  name: name,
+                                  scientificName: scientific,
+                                  familyName: family,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: context.theme.primaryColor,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text("Yes"),
+                            ),
+                          ],
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(

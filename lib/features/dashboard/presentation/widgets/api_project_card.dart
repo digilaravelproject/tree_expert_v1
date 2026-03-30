@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
 import 'package:tree_expert/features/auth/services/auth_service.dart';
+import 'package:tree_expert/core/services/sync_service.dart';
 import '../../../projects/data/model/project_list_model.dart';
 import '../controller/home_controller.dart';
 import 'download_options_bottom_sheet.dart';
@@ -41,13 +42,66 @@ class ApiProjectCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    project.projectName,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        project.projectName,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      // Sync Status Indicator
+                      Obx(() {
+                        final syncService = Get.find<SyncService>();
+                        final draftCount = syncService.getDraftCount(project.id.toString());
+                        if (draftCount > 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.sync_problem, color: Colors.orange, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  "$draftCount trees unsynced",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                if (syncService.isSyncing.value)
+                                  SizedBox(
+                                    width: 10,
+                                    height: 10,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.orange,
+                                    ),
+                                  )
+                                else
+                                  GestureDetector(
+                                    onTap: () => syncService.syncProjectDrafts(project.id.toString()),
+                                    child: Text(
+                                      "Sync Now",
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.blue,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }
+                        return SizedBox.shrink();
+                      }),
+                    ],
                   ),
                 ),
                 SizedBox(width: 12),
@@ -247,6 +301,7 @@ class ApiProjectCard extends StatelessWidget {
                       // Navigate to add tree page with project ID and count
                       Get.toNamed('/addTrees', arguments: {
                         'projectId': project.id,
+                        'projectName': project.projectName,
                         'treesCount': project.treesCount,
                         'limit': project.limit,
                       });

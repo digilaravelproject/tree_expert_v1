@@ -12,6 +12,8 @@ class LocationManager extends GetxController {
   final RxDouble longitude = 0.0.obs;
   final RxBool isLoading = false.obs;
   final RxBool permissionGranted = false.obs;
+  
+  Position? _lastGeocodedPosition; // Track to throttle reverse geocoding
 
   @override
   void onInit() {
@@ -73,7 +75,8 @@ class LocationManager extends GetxController {
       currentPosition.value = position;
       latitude.value = position.latitude;
       longitude.value = position.longitude;
-
+      
+      _lastGeocodedPosition = position;
       await getAddressFromCoordinates(position.latitude, position.longitude);
     } catch (e) {
       print('Get Location Error: $e');
@@ -116,7 +119,18 @@ class LocationManager extends GetxController {
         currentPosition.value = position;
         latitude.value = position.latitude;
         longitude.value = position.longitude;
-        getAddressFromCoordinates(position.latitude, position.longitude);
+
+        // Only geocode if we haven't done it yet OR we've moved significantly (e.g., 50m)
+        if (_lastGeocodedPosition == null || 
+            Geolocator.distanceBetween(
+                _lastGeocodedPosition!.latitude, 
+                _lastGeocodedPosition!.longitude, 
+                position.latitude, 
+                position.longitude) > 50) {
+          
+          _lastGeocodedPosition = position;
+          getAddressFromCoordinates(position.latitude, position.longitude);
+        }
       },
       onError: (error) {
         print('Location Stream Error: $error');

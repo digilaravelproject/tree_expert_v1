@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import '../../../../core/services/sync_service.dart';
+import '../../../../init_app.dart';
+import '../../../../main.dart';
 import '../../../../core/storage/shared_prefs.dart';
 import '../../../dashboard/presentation/controller/home_controller.dart';
 import '../../../location/location_manager.dart';
@@ -12,6 +15,8 @@ import '../../data/model/tree_model.dart';
 import '../../data/model/tree_entry.dart';
 import 'dart:async'; // For timer
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../../../core/constent/app_constants.dart';
 
 class AddTreeController extends GetxController {
@@ -55,6 +60,7 @@ class AddTreeController extends GetxController {
   
   // IDs
   String? projectId;
+  String? projectName;
   String? userId;
   int? projectLimit; // Maximum trees allowed for this project
   int currentTreesCount = 0; // Current trees in project
@@ -121,6 +127,7 @@ class AddTreeController extends GetxController {
     _initializeForm();
     _fetchUserId();
     _fetchFieldRequirements();
+    _loadPersistedTrees();
 
     // Listen to girth changes for auto-calculation
     girthController.addListener(_onGirthChanged);
@@ -181,6 +188,9 @@ class AddTreeController extends GetxController {
       if (args.containsKey('projectId')) {
         projectId = args['projectId'].toString();
       }
+      if (args.containsKey('projectName')) {
+        projectName = args['projectName'].toString();
+      }
       if (args.containsKey('treesCount')) {
          baseTreeCount = int.tryParse(args['treesCount'].toString()) ?? 0;
          currentTreesCount = baseTreeCount;
@@ -197,6 +207,69 @@ class AddTreeController extends GetxController {
     
     // Auto-fill GPS coordinates
     _captureGPSLocation();
+
+    // Load persisted drafts for this project
+    _loadPersistedTrees();
+  }
+
+  void _persistLocalTrees() {
+    if (projectId == null) return;
+    try {
+      final String key = "draft_trees_$projectId";
+      
+      // CRITICAL: Filter out any "ghost" or empty trees from the list 
+      // This can happen if user navigated previous/next without filling details
+      final List<TreeEntry> validTrees = localTrees.where((entry) {
+        return (entry.photos.isNotEmpty) || 
+               (entry.girth != null && entry.girth!.isNotEmpty) || 
+               (entry.remark != null && entry.remark!.isNotEmpty);
+      }).toList();
+
+      final List<String> encoded = validTrees.map((e) => jsonEncode(e.toLocalJson())).toList();
+      SharedPrefs.setStringList(key, encoded);
+      
+      // Update SyncService reactively with the VALID count
+      if (Get.isRegistered<SyncService>()) {
+        Get.find<SyncService>().updateDraftCount(projectId!, validTrees.length);
+      }
+      
+      print("DEBUG: Persisted ${validTrees.length} VALID trees for project $projectId (Filtered from ${localTrees.length})");
+    } catch (e) {
+      print("Error persisting trees: $e");
+    }
+  }
+
+  void _loadPersistedTrees() {
+    if (projectId == null) return;
+    try {
+      final String key = "draft_trees_$projectId";
+      final List<String>? encoded = SharedPrefs.getStringList(key);
+      if (encoded != null && encoded.isNotEmpty) {
+        // Only load if current list is empty to avoid overwriting or duplicates
+        if (localTrees.isEmpty) {
+          for (String item in encoded) {
+            try {
+              final Map<String, dynamic> json = jsonDecode(item);
+              localTrees.add(TreeEntry.fromLocalJson(json));
+            } catch (e) {
+              print("Error decoding persisted tree: $e");
+            }
+          }
+          print("DEBUG: Loaded ${localTrees.length} persisted trees for project $projectId");
+          
+          // If we loaded trees, we should also update the currentTreeNo and possibly other fields
+          if (localTrees.isNotEmpty) {
+            // Set index to the next one to be added
+            currentTreeIndex.value = localTrees.length;
+            int baseCount = currentTreesCount;
+            currentTreeNo.value = baseCount + localTrees.length + 1;
+            treeNoController.text = "${currentTreeNo.value}";
+          }
+        }
+      }
+    } catch (e) {
+      print("Error loading persisted trees: $e");
+    }
   }
 
   void _updateLocationFields(Position position) {
@@ -229,17 +302,26 @@ class AddTreeController extends GetxController {
 
     if (response.success && response.data != null) {
       final data = response.data!;
-      // API returns: girth_cm, estimated_height_m, estimated_canopy_m, estimated_age_years
+      // API returns: girth_cm, estimated_height_m, estimated_height_ft, estimated_canopy_m, estimated_canopy_ft, estimated_age_years
       
       if (selectedUnit.value == 'Meter') {
         heightController.text = (data['estimated_height_m'] ?? 0).toString();
         canopyController.text = (data['estimated_canopy_m'] ?? 0).toString();
       } else {
-        // Convert M to Feet
-        double heightM = (data['estimated_height_m'] ?? 0).toDouble();
-        double canopyM = (data['estimated_canopy_m'] ?? 0).toDouble();
-        heightController.text = (heightM * 3.28084).toStringAsFixed(2);
-        canopyController.text = (canopyM * 3.28084).toStringAsFixed(2);
+        // Use Feet values from API if available, else convert M to Feet
+        if (data.containsKey('estimated_height_ft')) {
+          heightController.text = data['estimated_height_ft'].toString();
+        } else {
+          double heightM = (data['estimated_height_m'] ?? 0).toDouble();
+          heightController.text = (heightM * 3.28084).toStringAsFixed(2);
+        }
+
+        if (data.containsKey('estimated_canopy_ft')) {
+          canopyController.text = data['estimated_canopy_ft'].toString();
+        } else {
+          double canopyM = (data['estimated_canopy_m'] ?? 0).toDouble();
+          canopyController.text = (canopyM * 3.28084).toStringAsFixed(2);
+        }
       }
       
       ageController.text = (data['estimated_age_years'] ?? 0).round().toString();
@@ -335,10 +417,15 @@ class AddTreeController extends GetxController {
     required String familyName,
   }) async {
     isLoading.value = true;
+    
+    // Apply fallback if scientific name or family name is empty
+    final finalScientific = scientificName.trim().isEmpty ? name : scientificName;
+    final finalFamily = familyName.trim().isEmpty ? name : familyName;
+
     final response = await _treesRepository.addTree(
       name: name,
-      scientificName: scientificName,
-      familyName: familyName,
+      scientificName: finalScientific,
+      familyName: finalFamily,
     );
 
     if (response.success && response.data != null) {
@@ -382,7 +469,7 @@ class AddTreeController extends GetxController {
       binding: GeoCameraBinding(),
       arguments: {
         'saveToGallery': false,
-        'projectNo': projectId ?? '',
+        'projectNo': projectName ?? projectId ?? '',
         'treeNo': treeNoController.text,
       },
     );
@@ -391,12 +478,38 @@ class AddTreeController extends GetxController {
     print("[AddTree] Result type: ${result.runtimeType}");
     
     if (result != null && result is String) {
-      print("[AddTree] Adding photo to list: $result");
-      // Add the captured photo path to the list
-      capturedPhotos.add(result);
-      print("[AddTree] Total photos: ${capturedPhotos.length}");
+      print("[AddTree] Compressing captured photo: $result");
+      
+      // Perform compression immediately to reduce future CPU load & heat
+      final String? compressedPath = await _compressCapturedImage(result);
+      final finalPath = compressedPath ?? result;
+
+      print("[AddTree] Adding photo to list: $finalPath");
+      capturedPhotos.add(finalPath);
     } else {
       print("[AddTree] Result is null or not a String");
+    }
+  }
+
+  Future<String?> _compressCapturedImage(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) return null;
+
+      final String targetPath = path.replaceAll('.jpg', '_compressed.jpg');
+      
+      final compressedFile = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        minWidth: 1024,
+        minHeight: 1024,
+        quality: 80,
+      );
+
+      return compressedFile?.path;
+    } catch (e) {
+      print("Error compressing image on capture: $e");
+      return null;
     }
   }
 
@@ -443,7 +556,12 @@ class AddTreeController extends GetxController {
   // Navigation Logic
   void onPrevious() {
     if (currentTreeIndex.value > 0) {
-      _saveCurrentTreeToLocal();
+      // Only save if current form has actual data
+      // This prevents empty form at the end of list from being saved as 'ghost' draft
+      if (_hasCurrentFormData()) {
+        _saveCurrentTreeToLocal();
+      }
+      
       currentTreeIndex.value--;
       _loadTreeFromLocal(currentTreeIndex.value);
     }
@@ -584,6 +702,10 @@ class AddTreeController extends GetxController {
 
         // 1. Check Required
         if (isRequired && valueStr.isEmpty) {
+          // Skip for scientific_name and family as they have fallbacks to tree_name
+          if (key == 'scientific_name' || key == 'family') {
+            continue;
+          }
           if (showError) {
             firstError = "${_formatFieldName(key)} is required";
           } else {
@@ -684,6 +806,7 @@ class AddTreeController extends GetxController {
      
      final entry = TreeEntry(
        wardPlotNo: wardPlotNoController.text,
+       plotNo: plotNoController.text,
        treeNo: treeNoController.text,
        treeName: treeNameController.text,
        treeId: selectedTreeId,
@@ -718,12 +841,14 @@ class AddTreeController extends GetxController {
      } else {
        localTrees.add(entry);
      }
+     _persistLocalTrees();
   }
 
   void _loadTreeFromLocal(int index) {
     if (index >= 0 && index < localTrees.length) {
       final entry = localTrees[index];
       wardPlotNoController.text = entry.wardPlotNo ?? '';
+      plotNoController.text = entry.plotNo ?? '';
       treeNoController.text = entry.treeNo ?? '';
       treeNameController.text = entry.treeName ?? '';
       selectedTreeId = entry.treeId;
@@ -748,6 +873,15 @@ class AddTreeController extends GetxController {
       selectedUnit.value = entry.unit ?? 'Meter'; // Restore unit
       capturedPhotos.value = List.from(entry.photos);
     }
+  }
+
+  /// Returns true if there is at least some data in the current form
+  bool _hasCurrentFormData() {
+    // These are the "active" fields that imply the user started a NEW tree
+    // We ignore fields that are auto-filled or kept from previous (like tree name, ward, etc)
+    return capturedPhotos.isNotEmpty || 
+           girthController.text.isNotEmpty || 
+           remarkController.text.isNotEmpty;
   }
 
   void _resetFormForNext() {
@@ -782,6 +916,151 @@ class AddTreeController extends GetxController {
     _captureGPSLocation();
   }
 
+  Future<void> saveAsDraftAndExit() async {
+    // Only save the current form as a draft if it contains some data
+    if (_hasCurrentFormData()) {
+      _saveCurrentTreeToLocal();
+    }
+    
+    // Always persist the existing list of successfully added trees
+    _persistLocalTrees();
+    
+    Get.snackbar(
+      "Progress Saved",
+      _hasCurrentFormData() ? "Draft saved successfully" : "Previous trees safely stored",
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue.shade700,
+      colorText: Colors.white,
+    );
+  }
+
+  void discardAllAndExit() {
+    localTrees.clear();
+    if (projectId != null) {
+      SharedPrefs.remove("draft_trees_$projectId");
+      if (Get.isRegistered<SyncService>()) {
+        Get.find<SyncService>().updateDraftCount(projectId!, 0);
+      }
+    }
+    Get.snackbar(
+      "Discarded",
+      "All session data has been deleted",
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade700,
+      colorText: Colors.white,
+    );
+  }
+
+
+
+  void resetCurrentForm() {
+    confirmReset() async {
+       final confirmed = await Get.dialog<bool>(
+        AlertDialog(
+          title: Text("Reset Form?"),
+          content: Text("Are you sure you want to clear all data for this tree?"),
+          actions: [
+            TextButton(onPressed: () => Get.back(result: false), child: Text("No")),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              onPressed: () => Get.back(result: true), 
+              child: Text("Yes, Reset")
+            ),
+          ],
+        ),
+      );
+      
+      if (confirmed == true) {
+        // Clear all controllers
+        plotNoController.clear();
+        treeNameController.clear();
+        selectedTreeId = null;
+        scientificNameController.clear();
+        selectedScientificNameId = null;
+        familyController.clear();
+        selectedFamilyId = null;
+        girthController.clear();
+        heightController.clear();
+        canopyController.clear();
+        ageController.clear();
+        landmarkController.clear();
+        concernPersonController.clear();
+        remarkController.clear();
+        capturedPhotos.clear();
+        selectedCondition.value = 'Good';
+        selectedProposedFor.value = 'Retain';
+        selectedOwnership.value = 'Pvt';
+        
+        // Reload location
+        _captureGPSLocation();
+        
+        Get.snackbar("Refreshed", "Form has been cleared", snackPosition: SnackPosition.BOTTOM);
+      }
+    }
+    
+    confirmReset();
+  }
+
+  Future<void> deleteCurrentTree() async {
+    if (localTrees.isEmpty || currentTreeIndex.value >= localTrees.length) {
+      Get.snackbar("Error", "Nothing to delete", 
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text("Delete This Tree?"),
+        content: Text("Are you sure you want to delete Tree #${currentTreeIndex.value + 1} and re-number the others?"),
+        actions: [
+          TextButton(onPressed: () => Get.back(result: false), child: Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Get.back(result: true), 
+            child: Text("Delete")
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // 1. Remove from list
+    int indexToRemove = currentTreeIndex.value;
+    localTrees.removeAt(indexToRemove);
+
+    // 2. Re-number all subsequent trees to maintain sequence
+    // currentTreesCount is the baseline count from server
+    for (int i = 0; i < localTrees.length; i++) {
+       int newTreeNoVal = currentTreesCount + i + 1;
+       localTrees[i].treeNo = "$newTreeNoVal";
+    }
+
+    // 3. Update navigation state
+    if (localTrees.isEmpty) {
+      currentTreeIndex.value = 0;
+      _resetFormForNext();
+    } else {
+      // If we deleted the last one, go to the new last one
+      if (indexToRemove >= localTrees.length) {
+        currentTreeIndex.value = localTrees.length - 1;
+      } else {
+        // Stay at same index, but now it points to the 'next' tree in the list
+        currentTreeIndex.value = indexToRemove;
+      }
+      _loadTreeFromLocal(currentTreeIndex.value);
+    }
+
+    // 4. Update the baseline currentTreeNo for next additions
+    currentTreeNo.value = currentTreesCount + localTrees.length + 1;
+
+    // 5. Save changes
+    _persistLocalTrees();
+    
+    Get.snackbar("Deleted", "Tree removed and sequence updated", 
+        snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
+  }
+
   Future<void> handleSubmit() async {
     // 1. Try to validate and save the current tree
     if (_validateCurrentForm(showError: false)) {
@@ -812,56 +1091,43 @@ class AddTreeController extends GetxController {
         title: Text("Confirm Submission"),
         content: Text("Submit ${localTrees.length} ${localTrees.length == 1 ? 'tree' : 'trees'}?"),
         actions: [
-          TextButton(onPressed: () => Get.back(result: false), child: Text("No")),
-          ElevatedButton(onPressed: () => Get.back(result: true), child: Text("Yes, Submit")),
+          TextButton(onPressed: () => Get.back(result: false), child: Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+            onPressed: () => Get.back(result: true), 
+            child: Text("Submit All")
+          ),
         ],
       ),
     );
 
     if (confirmed != true) return;
 
-    isLoading.value = true;
-
-    try {
-      // Convert all trees to JSON with base64 images
-      final List<Map<String, dynamic>> treesData = [];
-      for (TreeEntry entry in localTrees) {
-        final jsonData = await entry.toJson();
-        treesData.add(jsonData);
-      }
-
-      print("treeData with base64 images: $treesData");
-
-      final response = await _treesRepository.submitTrees(treesData);
-
-      isLoading.value = false;
-
-      if (response.success) {
-        Get.snackbar("Success", "All trees submitted successfully!");
-        
-        try {
-          if (Get.isRegistered<HomeController>()) {
-            Get.find<HomeController>().fetchProjects();
-          }
-        } catch (e) {
-          print("Error refreshing projects: $e");
-        }
-        
-        FocusManager.instance.primaryFocus?.unfocus();
-        await Future.delayed(Duration(milliseconds: 300));
-
-        if (Get.context != null) {
-          Navigator.of(Get.context!).pop(true);
-        } else {
-          Get.back(result: true);
-        }
+    // 1. Ensure all current data is saved locally first
+    _persistLocalTrees();
+    
+    // 2. Delegate to SyncService for background processing
+    if (projectId != null && Get.isRegistered<SyncService>()) {
+      Get.find<SyncService>().syncProjectDrafts(projectId!);
+      
+      // 3. Close the Add Tree screen immediately
+      // Note: We use the context and Navigator for more reliability in multi-overlay scenarios
+      final context = Get.context;
+      if (context != null) {
+        Navigator.of(context).pop(true);
       } else {
-        Get.snackbar("Error", response.message ?? "Failed to submit trees");
+        Get.back(result: true);
       }
-    } catch (e) {
-      isLoading.value = false;
-      Get.snackbar("Error", "Failed to process images: $e");
-      print("Error in submitAllStoredTrees: $e");
+      
+      Get.snackbar(
+        "Syncing Started", 
+        "Submitting ${localTrees.length} trees in background",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade700,
+        colorText: Colors.white,
+      );
+    } else {
+       Get.snackbar("Error", "Sync service not available");
     }
   }
 

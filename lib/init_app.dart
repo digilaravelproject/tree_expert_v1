@@ -8,12 +8,25 @@ import 'features/location/location_manager.dart';
 import 'features/razorpay/payment_repository.dart';
 import 'features/razorpay/razorpay_controller.dart';
 
+import 'core/services/sync_service.dart';
+import 'core/services/notification_service.dart';
+import 'features/trees/data/repository/trees_repository.dart';
+
 Future<void> initApp() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Register repositories and services
   Get.put<ApiClient>(ApiClient(), permanent: true);
+  Get.put<TreesRepository>(TreesRepository(), permanent: true);
   Get.put<PaymentRepository>(PaymentRepository(), permanent: true);
   Get.put<RazorpayController>(RazorpayController(), permanent: true);
+  
+  // Initialize Notification Service
+  final notificationService = Get.put(AppNotificationService(), permanent: true);
+  await notificationService.init();
+
+  Get.put<SyncService>(SyncService(), permanent: true);
 
 
 
