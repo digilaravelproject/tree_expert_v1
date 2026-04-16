@@ -13,6 +13,7 @@ import '../../../projects/data/model/project_list_model.dart';
 import '../../../projects/data/repository/projects_repository.dart';
 import '../../data/model/user_profile_data.dart';
 import '../../data/repository/dashboard_repository.dart';
+import '../../../../core/services/sync_service.dart';
 
 class HomeController extends GetxController {
 
@@ -394,6 +395,12 @@ class HomeController extends GetxController {
     
     if (response.success && response.data != null) {
       projectsList.value = response.data!;
+      
+      // Pre-load draft counts for all projects to avoid "setState() during build"
+      if (Get.isRegistered<SyncService>()) {
+        final projectIds = projectsList.map((p) => p.id.toString()).toList();
+        Get.find<SyncService>().reloadAllDraftCounts(projectIds);
+      }
       
       // Load active_tree_price from SharedPrefs (saved by repository)
       final priceString = SharedPrefs.getString('active_tree_price');

@@ -20,7 +20,17 @@ class SyncService extends GetxService {
 
   /// Update the draft count for a specific project reactively
   void updateDraftCount(String projectId, int count) {
-    projectDrafts[projectId] = count;
+    // Wrap in microtask to avoid "setState() during build" if called from UI
+    Future.microtask(() => projectDrafts[projectId] = count);
+  }
+
+  /// Reload all draft counts for known projects from storage
+  void reloadAllDraftCounts(List<String> projectIds) {
+    for (var id in projectIds) {
+      final String key = "draft_trees_$id";
+      final List<String>? encoded = SharedPrefs.getStringList(key);
+      projectDrafts[id] = encoded?.length ?? 0;
+    }
   }
 
   /// Get count of pending drafts for a specific project
@@ -32,7 +42,11 @@ class SyncService extends GetxService {
     final String key = "draft_trees_$projectId";
     final List<String>? encoded = SharedPrefs.getStringList(key);
     final count = encoded?.length ?? 0;
-    projectDrafts[projectId] = count;
+    
+    // Update the map in the next microtask to avoid breaking the current build phase
+    // This ensures reactivity without the "setState() during build" exception
+    Future.microtask(() => projectDrafts[projectId] = count);
+    
     return count;
   }
 
