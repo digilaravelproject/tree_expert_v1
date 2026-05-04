@@ -1,8 +1,8 @@
 class ApiConstants {
     ApiConstants._();
 
-    static const String baseUrl = "https://darkorange-baboon-922736.hostingersite.com/public";
-   // static const String baseUrl = "https://basilenv.in";
+ //   static const String baseUrl = "https://darkorange-baboon-922736.hostingersite.com/public";
+    static const String baseUrl = "https://basilenv.in";
     static const String apiBaseUrl = "$baseUrl/api/";
 
     static const String xApiKey = "X-API-KEY";
@@ -25,7 +25,6 @@ class ApiConstants {
     static const String sendOtp = "password/send-otp";
     static const String verifyOtp = "password/verify-otp";
     static const String resetPassword = "password/reset";
-
     static const String dashboard = "dashboard";
     static const String userRating = "user/rating";
     static const String contacts = "contacts";
@@ -37,10 +36,8 @@ class ApiConstants {
     static const String faqs = "faqs";
     static const String videos = "videos";
     static const String userSubscriptions = "user-subscriptions";
-
     static const String createProject = "customer/create-project";
     static const String updateProject = "customer/projects";
-
     static const String treeList = "tree-list";
     static const String treeDetails = "tree"; // tree/{id}
     static const String treeMeasure = "tree/measure";
