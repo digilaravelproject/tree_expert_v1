@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:tree_expert/core/helper/country_list_picker.dart';
 import '../../../../../core/helper/form_validator.dart';
 import '../../../../../core/styles/app_decoration.dart';
 import '../../../../../widgets/basic_text_field.dart';
@@ -122,13 +124,66 @@ class RegisterPage extends GetWidget<RegisterController> {
                                   iconData: CupertinoIcons.profile_circled,
                                 ),
 
-                                AppInputTextField(
-                                  label: "Email Id",
-                                  textInputType: TextInputType.emailAddress,
-                                  validator: FormValidator.email,
-                                  controller: controller.emailCtrl,
-                                  iconData: CupertinoIcons.mail,
-                                ),
+                                 if (controller.loginType == 'email')
+                                  Obx(() {
+                                    var p = controller.selectedPhone.value;
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Mobile Number", style: context.theme.textTheme.labelMedium),
+                                        const SizedBox(height: 6),
+                                        TextFormField(
+                                          controller: controller.mobileCtrl,
+                                          keyboardType: TextInputType.phone,
+                                          maxLength: p.maxLength,
+                                          style: context.textTheme.titleMedium,
+                                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                          decoration: InputDecoration(
+                                            counterText: "",
+                                            hintText: "Your ${p.maxLength}-digit mobile number",
+                                            prefixIcon: Container(
+                                              margin: const EdgeInsets.only(right: 8),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                                              decoration: BoxDecoration(
+                                                border: Border(
+                                                  right: BorderSide(
+                                                    color: context.theme.dividerColor,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: InkWell(
+                                                onTap: controller.pickCountry,
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  spacing: 8,
+                                                  children: [
+                                                    Text(p.flag, style: const TextStyle(fontSize: 18)),
+                                                    Text(
+                                                      p.displayCC,
+                                                      style: context.textTheme.titleMedium?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                    const Icon(Icons.keyboard_arrow_down_rounded, size: 15),
+                                                  ],
+                                                ),
+                                              ),
+                                            ).marginSymmetric(vertical: 12),
+                                          ),
+                                          validator: (val) => FormValidator.mobile(val, country: p),
+                                        ),
+                                      ],
+                                    );
+                                  })
+                                else
+                                  AppInputTextField(
+                                    label: "Email Id",
+                                    textInputType: TextInputType.emailAddress,
+                                    validator: FormValidator.email,
+                                    controller: controller.emailCtrl,
+                                    iconData: CupertinoIcons.mail,
+                                  ),
                                 
                                 // Gender Dropdown
                                 DropdownButtonFormField<String>(

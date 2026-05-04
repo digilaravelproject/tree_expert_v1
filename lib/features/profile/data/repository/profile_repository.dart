@@ -107,7 +107,9 @@ class ProfileRepository {
     String email, 
     {String? address, 
     String? gender, 
-    String? aadhaarNumber}
+    String? aadhaarNumber,
+    String? mobile,
+    String? phoneCode}
   ) async {
     try {
       String fileName = image.path.split('/').last;
@@ -131,6 +133,14 @@ class ProfileRepository {
       
       if (aadhaarNumber != null && aadhaarNumber.trim().isNotEmpty) {
         formFields['aadhaar_number'] = aadhaarNumber.trim();
+      }
+
+      if (mobile != null && mobile.trim().isNotEmpty) {
+        formFields['mobile'] = mobile.trim();
+      }
+
+      if (phoneCode != null && phoneCode.trim().isNotEmpty) {
+        formFields['phone_code'] = phoneCode.trim();
       }
 
       final formData = dio.FormData.fromMap(formFields);

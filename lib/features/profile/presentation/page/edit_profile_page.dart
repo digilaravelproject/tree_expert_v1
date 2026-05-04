@@ -56,7 +56,7 @@ class EditProfilePage extends GetView<EditProfileController> {
                                     fit: BoxFit.cover,
                                   )
                                 : CustomImageView(
-                                    url: "https://img.freepik.com/free-photo/front-view-business-woman-suit_23-2148603018.jpg",
+                                    url: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
                                     fit: BoxFit.cover,
                                   ),
                       ),
@@ -114,7 +114,38 @@ class EditProfilePage extends GetView<EditProfileController> {
             Obx(() => _buildTextField(
               controller: controller.phoneController,
               label: "Phone Number",
-              icon: Icons.phone_outlined,
+              icon: null, // We'll use a custom prefix for the country picker
+              prefix: GestureDetector(
+                onTap: controller.canEditPhone.value ? controller.pickCountry : null,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        controller.selectedPhone.value.flag,
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        controller.selectedPhone.value.displayCC,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: controller.canEditPhone.value ? Colors.black87 : Colors.grey.shade600,
+                        ),
+                      ),
+                      Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+                      Container(
+                        height: 24,
+                        width: 1,
+                        color: Colors.grey.shade300,
+                        margin: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               hint: controller.canEditPhone.value ? "Enter your phone number" : "Phone cannot be changed",
               keyboardType: TextInputType.phone,
               enabled: controller.canEditPhone.value,
@@ -201,7 +232,8 @@ class EditProfilePage extends GetView<EditProfileController> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
-    required IconData icon,
+    IconData? icon,
+    Widget? prefix,
     required String hint,
     TextInputType? keyboardType,
     bool enabled = true,
@@ -245,7 +277,7 @@ class EditProfilePage extends GetView<EditProfileController> {
           enabled: enabled,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: enabled ? Colors.grey.shade600 : Colors.grey.shade400),
+            prefixIcon: prefix ?? (icon != null ? Icon(icon, color: enabled ? Colors.grey.shade600 : Colors.grey.shade400) : null),
             suffixIcon: !enabled ? Icon(Icons.lock, color: Colors.grey.shade400, size: 20) : null,
             filled: true,
             fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade200,

@@ -20,6 +20,9 @@ class AppConstants {
   static const String userTypeCompany = "company";
 
   static const int roleIdCompany = 2;
+  
+    static const String loginFormteEmailAndPassword = "mobile";
+
 
   // OTP Settings
   static const int otpLength = 4;

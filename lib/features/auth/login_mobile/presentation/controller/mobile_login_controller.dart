@@ -3,50 +3,92 @@ import 'package:get/get.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
 
 import 'package:tree_expert/core/constent/app_constants.dart';
+import 'package:tree_expert/core/helper/country_list_picker.dart';
 import '../../../services/auth_service.dart';
 import '../page/otp_verification_page.dart';
 
 class MobileLoginController extends GetxController {
     final AuthService authService;
 
-    MobileLoginController({required this.authService});
+    MobileLoginController({required this.authService}) {
+        mobileController.addListener(() {
+            _updateIdentifier();
+        });
+        emailController.addListener(() {
+            _updateIdentifier();
+        });
+    }
+
+    void _updateIdentifier() {
+        final loginFormat = AppConstants.loginFormteEmailAndPassword;
+        if (loginFormat == "email") {
+            identifier.value = emailController.text.trim();
+        } else {
+            identifier.value = mobileController.text.trim();
+        }
+    }
 
     // Form Keys
     final formKey = GlobalKey<FormState>();
 
     // Text Controllers
     final mobileController = TextEditingController();
+    final emailController = TextEditingController();
 
     // Observables
     final isLoading = false.obs;
-    final selectedPhone = Rx<PhoneCountry>(PhoneCountry.india);
+    final selectedPhone = countries.firstWhere((c) => c.code == "IN").obs;
+    final identifier = "".obs;
 
     @override
     void onClose() {
         mobileController.dispose();
+        emailController.dispose();
         super.onClose();
     }
 
     // Pick Country Code
     void pickCountry() {
-        // TODO: Implement country picker
-        Get.snackbar(
-            "Country Picker",
-            "Implement country picker dialog here",
-            snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.to(() => CountriesList(onTap: (country) {
+            selectedPhone.value = country;
+        }));
+    }
+
+    // Send OTP / Login
+    Future<void> login() async {
+        if (!formKey.currentState!.validate()) return;
+        await sendOtp();
     }
 
     // Send OTP
     Future<void> sendOtp() async {
-        if (!formKey.currentState!.validate()) return;
-
         try {
             isLoading.value = true;
 
+            final loginFormat = AppConstants.loginFormteEmailAndPassword;
+            
+            String identifier = mobileController.text.trim();
+            bool isEmail = false;
+
+            if (loginFormat == "email") {
+                isEmail = true;
+                identifier = emailController.text.trim();
+            } else if (loginFormat == "mobile") {
+                isEmail = false;
+                identifier = mobileController.text.trim();
+            } else {
+                // If empty or "dono", detect from input
+                if (identifier.contains('@')) {
+                    isEmail = true;
+                } else {
+                    isEmail = false;
+                }
+            }
+
             final result = await authService.sendOtpToMobile(
                 phoneCode: selectedPhone.value.displayCC,
-                mobile: mobileController.text.trim(),
+                email: isEmail ? identifier : null,
+                mobile: isEmail ? null : identifier,
             );
 
             if (result.success) {
@@ -98,9 +140,29 @@ class MobileLoginController extends GetxController {
         try {
             isLoading.value = true;
 
+            final loginFormat = AppConstants.loginFormteEmailAndPassword;
+            
+            String identifier = mobileController.text.trim();
+            bool isEmail = false;
+
+            if (loginFormat == "email") {
+                isEmail = true;
+                identifier = emailController.text.trim();
+            } else if (loginFormat == "mobile") {
+                isEmail = false;
+                identifier = mobileController.text.trim();
+            } else {
+                if (identifier.contains('@')) {
+                    isEmail = true;
+                } else {
+                    isEmail = false;
+                }
+            }
+
             final result = await authService.verifyOtpAndLogin(
                 phoneCode: selectedPhone.value.displayCC,
-                mobile: mobileController.text.trim(),
+                email: isEmail ? identifier : null,
+                mobile: isEmail ? null : identifier,
                 otp: otp,
             );
 
@@ -117,12 +179,15 @@ class MobileLoginController extends GetxController {
                 );
 
                 if (isNewUser) {
-                    // Navigate to Register Page with phone data
+                    // Navigate to Register Page with login data
                     Get.toNamed(
                         AppRoutes.register,
                         arguments: {
-                            'phone': mobileController.text.trim(),
+                            'phone': isEmail ? null : identifier,
+                            'email': isEmail ? identifier : null,
                             'phoneCode': selectedPhone.value.displayCC,
+                            'loginType': isEmail ? 'email' : 'phone',
+                            'user': result.data!['user'], // Pass user object
                         },
                     );
                 } else {
@@ -154,9 +219,29 @@ class MobileLoginController extends GetxController {
     // Resend OTP
     Future<void> resendOtp() async {
         try {
+            final loginFormat = AppConstants.loginFormteEmailAndPassword;
+            
+            String identifier = mobileController.text.trim();
+            bool isEmail = false;
+
+            if (loginFormat == "email") {
+                isEmail = true;
+                identifier = emailController.text.trim();
+            } else if (loginFormat == "mobile") {
+                isEmail = false;
+                identifier = mobileController.text.trim();
+            } else {
+                if (identifier.contains('@')) {
+                    isEmail = true;
+                } else {
+                    isEmail = false;
+                }
+            }
+
             final result = await authService.sendOtpToMobile(
                 phoneCode: selectedPhone.value.displayCC,
-                mobile: mobileController.text.trim(),
+                email: isEmail ? identifier : null,
+                mobile: isEmail ? null : identifier,
             );
 
             if (result.success) {

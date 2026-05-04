@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:tree_expert/widgets/custom_image_view.dart';
 
+import '../../../../../core/constent/app_constants.dart';
 import '../../../../../core/helper/form_validator.dart';
 import '../../../../../core/routes/app_routes.dart';
 import '../../../../../core/styles/app_decoration.dart';
@@ -60,14 +61,22 @@ class MobileLoginPage extends GetWidget<MobileLoginController> {
 
                         // Welcome Text
                         Text(
-                          "Enter Mobile Number 📱",
+                          AppConstants.loginFormteEmailAndPassword == "email"
+                              ? "Enter Email Address 📧"
+                              : AppConstants.loginFormteEmailAndPassword == "mobile"
+                                  ? "Enter Mobile Number 📱"
+                                  : "Welcome Back 👋",
                           style: context.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "We'll send you an OTP to verify your mobile number.",
+                          AppConstants.loginFormteEmailAndPassword == "email"
+                              ? "We'll send you an OTP to verify your email address."
+                              : AppConstants.loginFormteEmailAndPassword == "mobile"
+                                  ? "We'll send you an OTP to verify your mobile number."
+                                  : "Enter your email or mobile number to continue.",
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: Colors.grey.shade600,
                           ),
@@ -75,80 +84,172 @@ class MobileLoginPage extends GetWidget<MobileLoginController> {
 
                         const SizedBox(height: 24),
 
-                        /// Phone Number Input
-                        Text(
-                          "Mobile Number",
-                          style: context.textTheme.labelMedium,
-                        ),
-                        const SizedBox(height: 6),
-
-                        Obx(() {
-                          var p = controller.selectedPhone.value;
-                          return TextFormField(
-                            focusNode: FocusNode(canRequestFocus: true),
-                            controller: controller.mobileController,
-                            maxLength: p.maxLength,
-                            autovalidateMode: AutovalidateMode.onUserInteraction,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(10),
-                            ],
-                            style: context.textTheme.titleMedium,
-
-                            decoration: InputDecoration(
-                              counterText: "",
-                              prefixIcon: Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    right: BorderSide(
-                                      color: context.theme.dividerColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: InkWell(
-                                  onTap: controller.pickCountry,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    spacing: 8,
-                                    children: [
-                                      Text(
-                                        p.flag,
-                                        style: const TextStyle(fontSize: 18),
-                                      ),
-                                      Text(
-                                        p.displayCC,
-                                        style: context.textTheme.titleMedium
-                                            ?.copyWith(
-                                          fontWeight: FontWeight.w600,
+                        if (AppConstants.loginFormteEmailAndPassword == "") ...[
+                          /// Combined Input
+                          Text(
+                            "Email or Mobile Number",
+                            style: context.textTheme.labelMedium,
+                          ),
+                          const SizedBox(height: 6),
+                          Obx(() {
+                            final input = controller.identifier.value.trim();
+                            final isNumeric = input.isNotEmpty && GetUtils.isNumericOnly(input);
+                            
+                            return TextFormField(
+                              controller: controller.mobileController,
+                              keyboardType: TextInputType.emailAddress,
+                              style: context.textTheme.titleMedium,
+                              decoration: InputDecoration(
+                                hintText: "Enter Email or Mobile Number",
+                                prefixIcon: isNumeric 
+                                  ? Container(
+                                      margin: const EdgeInsets.only(right: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          right: BorderSide(
+                                            color: context.theme.dividerColor,
+                                            width: 1,
+                                          ),
                                         ),
                                       ),
-                                      const Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        size: 15,
+                                      child: InkWell(
+                                        onTap: controller.pickCountry,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          spacing: 8,
+                                          children: [
+                                            Text(
+                                              controller.selectedPhone.value.flag,
+                                              style: const TextStyle(fontSize: 18),
+                                            ),
+                                            Text(
+                                              controller.selectedPhone.value.displayCC,
+                                              style: context.textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.keyboard_arrow_down_rounded,
+                                              size: 15,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              ).marginSymmetric(vertical: 12),
-                              hintText: "Your ${p.maxLength}-digit mobile number",
-                              hintStyle: context.textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w500),
+                                    ).marginSymmetric(vertical: 12)
+                                  : const Icon(Icons.person_outline),
+                              ),
+                              validator: (v) {
+                                  if (v == null || v.isEmpty) return "This field is required";
+                                  if (v.contains('@')) {
+                                      return FormValidator.email(v);
+                                  } else {
+                                      if (v.length != 10 || !GetUtils.isNumericOnly(v)) {
+                                          return "Enter a valid email or 10-digit mobile number";
+                                      }
+                                  }
+                                  return null;
+                              },
+                            );
+                          }),
+                          const SizedBox(height: 32),
+                        ] else ...[
+                          if (AppConstants.loginFormteEmailAndPassword == "email") ...[
+                            /// Email Input
+                            Text(
+                              "Email Address",
+                              style: context.textTheme.labelMedium,
                             ),
-                          );
-                        }),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: controller.emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              style: context.textTheme.titleMedium,
+                              decoration: const InputDecoration(
+                                hintText: "Enter your email",
+                                prefixIcon: Icon(Icons.email_outlined),
+                              ),
+                              validator: FormValidator.email,
+                            ),
+                            const SizedBox(height: 20),
+                          ],
 
-                        const SizedBox(height: 32),
+                          if (AppConstants.loginFormteEmailAndPassword == "mobile") ...[
+                            /// Phone Number Input
+                            Text(
+                              "Mobile Number",
+                              style: context.textTheme.labelMedium,
+                            ),
+                            const SizedBox(height: 6),
+
+                            Obx(() {
+                              var p = controller.selectedPhone.value;
+                              return TextFormField(
+                                focusNode: FocusNode(canRequestFocus: true),
+                                controller: controller.mobileController,
+                                maxLength: p.maxLength,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(10),
+                                ],
+                                style: context.textTheme.titleMedium,
+
+                                decoration: InputDecoration(
+                                  counterText: "",
+                                  prefixIcon: Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        right: BorderSide(
+                                          color: context.theme.dividerColor,
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    child: InkWell(
+                                      onTap: controller.pickCountry,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        spacing: 8,
+                                        children: [
+                                          Text(
+                                            p.flag,
+                                            style: const TextStyle(fontSize: 18),
+                                          ),
+                                          Text(
+                                            p.displayCC,
+                                            style: context.textTheme.titleMedium
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.keyboard_arrow_down_rounded,
+                                            size: 15,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ).marginSymmetric(vertical: 12),
+                                  hintText: "Your ${p.maxLength}-digit mobile number",
+                                  hintStyle: context.textTheme.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w500),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 32),
+                          ],
+                        ],
 
                         Obx(
                               () => CustomButton(
                             title: "SEND OTP",
-                            onPressed: controller.sendOtp,
+                            onPressed: controller.login,
                             isLoading: controller.isLoading.value,
                           ),
                         ),

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tree_expert/core/routes/app_routes.dart';
@@ -7,6 +8,7 @@ import 'package:tree_expert/core/storage/shared_prefs.dart';
 import 'package:tree_expert/core/constent/app_constants.dart';
 import 'dart:convert';
 
+import 'package:tree_expert/core/helper/country_list_picker.dart';
 import '../../../services/auth_service.dart';
 import '../../data/model/register_req.dart';
 import '../../domain/usecase/register_user_usecase.dart';
@@ -29,6 +31,7 @@ class RegisterController extends GetxController {
   // Text Controllers
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
+  final mobileCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
   final aadhaarCtrl = TextEditingController();
 
@@ -37,10 +40,14 @@ class RegisterController extends GetxController {
   final isEmailVerified = false.obs;
   final selectedGender = 'Male'.obs;
   final profileImage = Rx<File?>(null);
+  final selectedPhone = countries.firstWhere((c) => c.code == "IN").obs;
 
-  // Get phone from previous screen
+  // Get phone/email from previous screen
   String? phoneNumber;
+  String? emailAddress;
   String? phoneCountryCode;
+  String? loginType;
+  Map<String, dynamic>? userData;
 
   @override
   void onInit() {
@@ -49,7 +56,19 @@ class RegisterController extends GetxController {
     final args = Get.arguments;
     if (args != null) {
       phoneNumber = args['phone'];
+      emailAddress = args['email'];
       phoneCountryCode = args['phoneCode'];
+      loginType = args['loginType'];
+      userData = args['user'];
+      
+      if (phoneCountryCode != null) {
+          // Attempt to find country by dial code
+          final match = countries.firstWhereOrNull((c) => c.displayCC == phoneCountryCode);
+          if (match != null) selectedPhone.value = match;
+      }
+      
+      if (phoneNumber != null) mobileCtrl.text = phoneNumber!;
+      if (emailAddress != null) emailCtrl.text = emailAddress!;
     }
   }
 
@@ -57,9 +76,16 @@ class RegisterController extends GetxController {
   void onClose() {
     nameCtrl.dispose();
     emailCtrl.dispose();
+    mobileCtrl.dispose();
     addressCtrl.dispose();
     aadhaarCtrl.dispose();
     super.onClose();
+  }
+  // Pick Country
+  void pickCountry() {
+    Get.to(() => CountriesList(onTap: (country) {
+      selectedPhone.value = country;
+    }));
   }
 
   // Pick Image
@@ -87,9 +113,7 @@ class RegisterController extends GetxController {
     try {
       isLoading.value = true;
 
-      // Get User ID from Shared Prefs
-      String? userDataStr = SharedPrefs.getString(AppConstants.userDataPref);
-      if (userDataStr == null) {
+      if (userData == null) {
         Get.snackbar("Error", "User details not found. Please login again.",
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: Colors.red,
@@ -97,13 +121,13 @@ class RegisterController extends GetxController {
         return;
       }
       
-      Map<String, dynamic> userData = jsonDecode(userDataStr);
-      String userId = userData['id'].toString();
+      String userId = userData!['id'].toString();
 
       final result = await authService.completeUserProfile(
         userId: userId,
         name: nameCtrl.text.trim(),
         email: emailCtrl.text.trim(),
+        mobile: mobileCtrl.text.trim(), // Added mobile field
         gender: selectedGender.value.toLowerCase(),
         aadhaarNumber: aadhaarCtrl.text.trim(),
         address: addressCtrl.text.trim(),
