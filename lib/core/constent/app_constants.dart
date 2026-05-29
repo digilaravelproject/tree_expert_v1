@@ -21,7 +21,7 @@ class AppConstants {
 
   static const int roleIdCompany = 2;
   
-    static const String loginFormteEmailAndPassword = "mobile";
+    static const String loginFormteEmailAndPassword = "email";
 
 
   // OTP Settings
