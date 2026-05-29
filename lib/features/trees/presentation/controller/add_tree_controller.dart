@@ -888,7 +888,7 @@ class AddTreeController extends GetxController {
     // Keep Ward/Plot if needed? Usually yes for sequential add.
     // Increment Tree No based on value
     // Parse the numeric part from "T-123"
-    int nextNo = currentTreeNo.value + 1; // currentTreeNo is already tracked
+    int nextNo = currentTreesCount + localTrees.length + 1;
     currentTreeNo.value = nextNo; 
     treeNoController.text = "$nextNo";
     
