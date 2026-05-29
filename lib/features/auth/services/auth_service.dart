@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart' hide FormData;
 import 'package:dio/dio.dart' as dio;
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 import '../../../core/constent/api_constants.dart';
@@ -34,14 +35,20 @@ class AuthService extends GetxService {
   /// Send OTP to user's mobile
   Future<ApiResponse<Map<String, dynamic>>> sendOtpToMobile({
     required String phoneCode,
-    required String mobile,
+    String? mobile,
+    String? email,
   }) async {
     try {
+      final Map<String, dynamic> body = {};
+      if (email != null && email.isNotEmpty) {
+        body['email'] = email;
+      } else if (mobile != null && mobile.isNotEmpty) {
+        body['phone'] = mobile;
+      }
+      debugPrint("Sending OTP with Body: $body"); 
       final response = await _apiClient.post(
         ApiConstants.sendLoginOtp,
-        data: FormData.fromMap({
-          'phone': mobile,
-        }),
+        data: FormData.fromMap(body),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -67,16 +74,21 @@ class AuthService extends GetxService {
   /// Verify OTP and login
   Future<ApiResponse<Map<String, dynamic>>> verifyOtpAndLogin({
     required String phoneCode,
-    required String mobile,
+    String? mobile,
+    String? email,
     required String otp,
   }) async {
     try {
+      final Map<String, dynamic> body = {'otp': otp};
+      if (email != null && email.isNotEmpty) {
+        body['email'] = email;
+      } else if (mobile != null && mobile.isNotEmpty) {
+        body['phone'] = mobile;
+      }
+
       final response = await _apiClient.post(
         ApiConstants.otpVerify,
-        data: FormData.fromMap({
-          'phone': mobile,
-          'otp': otp,
-        }),
+        data: FormData.fromMap(body),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -99,22 +111,20 @@ class AuthService extends GetxService {
           await TokenManager.saveToken(data['access_token']);
         }
 
-        if (data['user'] != null) {
-          await SharedPrefs.setString(
-            AppConstants.userDataPref,
-            jsonEncode(data['user']),
-          );
-          if (data['user']['id'] != null) {
-            await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['user']['id'].toString()) ?? 0);
-          }
-        }
-
         if (!isNewUser) {
-          // Save user data
-
+          // Save user data for existing users
+          if (data['user'] != null) {
+            await SharedPrefs.setString(
+              AppConstants.userDataPref,
+              jsonEncode(data['user']),
+            );
+            if (data['user']['id'] != null) {
+              await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['user']['id'].toString()) ?? 0);
+            }
+          }
 
           // Check role_id
-          int roleId = data['user']['role_id'] ?? 0;
+          int roleId = data['user']?['role_id'] ?? 0;
           bool isCompany = (roleId == AppConstants.roleIdCompany);
 
           // Update login state
@@ -155,6 +165,7 @@ class AuthService extends GetxService {
     required String gender,
     required String aadhaarNumber,
     required String address,
+    String? mobile,
     File? profileImage,
   }) async {
     try {
@@ -165,6 +176,7 @@ class AuthService extends GetxService {
         'gender': gender,
         'aadhaar_number': aadhaarNumber,
         'address': address,
+        'phone': mobile,
       };
 
       // Add profile image if selected
@@ -181,21 +193,26 @@ class AuthService extends GetxService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
+        final responseData = response.data;
+        
+        // Handle both wrapped 'data' and flat response structure
+        final userData = responseData['data'] ?? (responseData.containsKey('id') ? responseData : null);
 
-        // Save updated user data
-        if (data['data'] != null) {
+        if (userData != null) {
           await SharedPrefs.setString(
             AppConstants.userDataPref,
-            jsonEncode(data['data']),
+            jsonEncode(userData),
           );
-          if (data['data']['id'] != null) {
-            await SharedPrefs.setInt(AppConstants.userIdPref, int.tryParse(data['data']['id'].toString()) ?? 0);
+          
+          if (userData['id'] != null) {
+            await SharedPrefs.setInt(
+              AppConstants.userIdPref, 
+              int.tryParse(userData['id'].toString()) ?? 0
+            );
           }
 
-
           // Update login state & role
-          int roleId = data['data']['role_id'] ?? 0;
+          int roleId = userData['role_id'] ?? 0;
           bool isCompany = (roleId == AppConstants.roleIdCompany);
 
           await SharedPrefs.setBool(AppConstants.isLoggedInPref, true);
@@ -205,11 +222,12 @@ class AuthService extends GetxService {
         }
 
         return ApiResponse.success(
-          data,
-          message: data['message'] ?? 'Profile updated successfully',
+          responseData,
+          message: responseData['message'] ?? 'Profile updated successfully',
           code: response.statusCode,
         );
-      } else {
+      }
+ else {
         return ApiResponse.error(
           response.data['message'] ?? 'Failed to update profile',
           code: response.statusCode,
@@ -326,7 +344,7 @@ class AuthService extends GetxService {
   }) async {
     try {
       final response = await _apiClient.post(
-        ApiConstants.verifyOtp,
+        ApiConstants.otpVerify,
         data: {
           'email': email,
           'otp': otp,

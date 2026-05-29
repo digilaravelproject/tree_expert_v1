@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/helper/country_list_picker.dart';
 import '../../../../core/constent/app_constants.dart';
 import '../../../../core/storage/shared_prefs.dart';
 import '../../data/repository/profile_repository.dart';
@@ -28,6 +29,8 @@ class EditProfileController extends GetxController {
   // Track if fields can be edited
   final RxBool canEditEmail = true.obs;
   final RxBool canEditPhone = true.obs;
+  
+  final selectedPhone = countries.firstWhere((c) => c.code == "IN").obs;
 
   @override
   void onInit() {
@@ -47,6 +50,19 @@ class EditProfileController extends GetxController {
       genderController.text = profile.gender ?? '';
       profileImageUrl.value = profile.profileImage ?? '';
       
+      // Attempt to find country by dial code if phone exists
+      if (profile.phone != null && profile.phone!.startsWith('+')) {
+          final dialCode = profile.phone!.split(' ')[0]; // Assuming format "+91 1234567890"
+          final match = countries.firstWhereOrNull((c) => c.displayCC == dialCode);
+          if (match != null) {
+              selectedPhone.value = match;
+              // If phone is stored as "+91 9876543210", we might want to strip the prefix for the controller
+              if (profile.phone!.contains(' ')) {
+                  phoneController.text = profile.phone!.split(' ').sublist(1).join(' ');
+              }
+          }
+      }
+
       // Determine if fields can be edited
       canEditEmail.value = profile.email.isEmpty;
       canEditPhone.value = profile.phone?.isEmpty ?? true;
@@ -65,6 +81,13 @@ class EditProfileController extends GetxController {
     if (image != null) {
       selectedImage.value = File(image.path);
     }
+  }
+
+  // Pick Country
+  void pickCountry() {
+    Get.to(() => CountriesList(onTap: (country) {
+      selectedPhone.value = country;
+    }));
   }
 
   Future<void> saveProfile() async {
@@ -108,6 +131,8 @@ class EditProfileController extends GetxController {
         'address': addressController.text.trim(),
         'gender': genderController.text.trim(),
         'aadhaar_number': aadhaarController.text.trim(),
+        'mobile': phoneController.text.trim(), // Use 'mobile' as per API
+        'phone_code': selectedPhone.value.displayCC,
       };
 
       // Always include email - use current profile email if field is not editable
@@ -138,6 +163,8 @@ class EditProfileController extends GetxController {
           address: addressController.text.trim(),
           gender: genderController.text.trim(),
           aadhaarNumber: aadhaarController.text.trim(),
+          mobile: phoneController.text.trim(),
+          phoneCode: selectedPhone.value.displayCC,
         );
 
         if (!imageResponse.success) {

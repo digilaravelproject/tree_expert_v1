@@ -8,4 +8,6 @@ class AssetsRes {
 
   static const String PROJECT_NAME = 'tree_expert';
   static const String PROJECT_VERSION = '1.0.0+1';
+  static const String APP_LOGO = 'assets/images/app_logo.jpeg';
+  static const String APP_LOGO_OLD = 'assets/images/app_logo_old.jpg';
 }

@@ -17,10 +17,10 @@ class VerifyOtpBottomSheet extends StatefulWidget {
 
   static show(MobileLoginController c) {
     Get.bottomSheet(
-      PopScope(canPop: false, child: VerifyOtpBottomSheet(controller: c)),
+      PopScope(canPop: true, child: VerifyOtpBottomSheet(controller: c)),
       persistent: true,
       isScrollControlled: true,
-      isDismissible: false,
+      isDismissible: true,
     );
   }
 }
@@ -124,25 +124,30 @@ class _VerifyOtpBottomSheetState extends State<VerifyOtpBottomSheet> {
 
                 const SizedBox(height: 24),
 
-                /// Title
-                Text(
-                  "Verify Your Number",
-                  style: context.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                /// Subtext
-                Text(
-                  "Enter the ${AppConstants.otpLength}-digit code sent to\n${controller.selectedPhone.value.displayCC} ${controller.mobileController.text}",
-                  textAlign: TextAlign.center,
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                    height: 1.4,
-                  ),
-                ),
+                /// Title & Subtext
+                Obx(() => Column(
+                  children: [
+                    Text(
+                      controller.identifier.value.contains('@') 
+                          ? "Verify Your Email" 
+                          : "Verify Your Number",
+                      style: context.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      controller.identifier.value.contains('@')
+                          ? "Enter the ${AppConstants.otpLength}-digit code sent to\n${controller.identifier.value}"
+                          : "Enter the ${AppConstants.otpLength}-digit code sent to\n${controller.selectedPhone.value.displayCC} ${controller.identifier.value}",
+                      textAlign: TextAlign.center,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey.shade600,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                )),
 
                 const SizedBox(height: 40),
 
