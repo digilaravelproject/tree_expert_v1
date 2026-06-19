@@ -212,14 +212,14 @@ class RegisterPage extends GetWidget<RegisterController> {
                                   iconData: CupertinoIcons.location,
                                 ),
 
-                                 AppInputTextField(
-                                  label: "Aadhaar Number",
-                                  textInputType: TextInputType.number,
-                                  maxLength: 12,
-                                  validator: (val) => (val == null || val.length != 12) ? "Enter valid 12-digit Aadhaar" : null,
-                                  controller: controller.aadhaarCtrl,
-                                  iconData: CupertinoIcons.doc_text,
-                                ),
+                                //  AppInputTextField(
+                                //   label: "Aadhaar Number",
+                                //   textInputType: TextInputType.number,
+                                //   maxLength: 12,
+                                //   validator: (val) => (val == null || val.length != 12) ? "Enter valid 12-digit Aadhaar" : null,
+                                //   controller: controller.aadhaarCtrl,
+                                //   iconData: CupertinoIcons.doc_text,
+                                // ),
                               ],
                             ).marginSymmetric(vertical: 24),
 

@@ -178,13 +178,13 @@ class EditProfilePage extends GetView<EditProfileController> {
             ),
 
             // Aadhaar Number Field
-            _buildTextField(
-              controller: controller.aadhaarController,
-              label: "Aadhaar Number",
-              icon: Icons.credit_card_outlined,
-              hint: "Enter your aadhaar number",
-              keyboardType: TextInputType.number,
-            ),
+            // _buildTextField(
+            //   controller: controller.aadhaarController,
+            //   label: "Aadhaar Number",
+            //   icon: Icons.credit_card_outlined,
+            //   hint: "Enter your aadhaar number",
+            //   keyboardType: TextInputType.number,
+            // ),
 
             SizedBox(height: 40),
 

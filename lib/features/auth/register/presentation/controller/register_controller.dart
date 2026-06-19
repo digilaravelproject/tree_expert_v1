@@ -102,13 +102,13 @@ class RegisterController extends GetxController {
   Future<void> onRegister() async {
     if (!formKey.currentState!.validate()) return;
 
-    if (aadhaarCtrl.text.length != 12) {
-      Get.snackbar("Error", "Aadhaar number must be 12 digits",
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white);
-      return;
-    }
+    // if (aadhaarCtrl.text.length != 12) {
+    //   Get.snackbar("Error", "Aadhaar number must be 12 digits",
+    //       snackPosition: SnackPosition.BOTTOM,
+    //       backgroundColor: Colors.red,
+    //       colorText: Colors.white);
+    //   return;
+    // }
 
     try {
       isLoading.value = true;
