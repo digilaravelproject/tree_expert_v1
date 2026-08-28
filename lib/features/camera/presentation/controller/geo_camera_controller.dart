@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'dart:async';
 
 class GeoCameraController extends GetxController {
   CameraController? cameraController;
@@ -36,6 +37,7 @@ class GeoCameraController extends GetxController {
   var initialCameraPosition = Rx<LatLng>(LatLng(0, 0));
 
   final ScreenshotController screenshotController = ScreenshotController();
+  StreamSubscription<Position>? _positionSubscription;
 
   @override
   void onInit() {
@@ -54,6 +56,7 @@ class GeoCameraController extends GetxController {
 
   @override
   void onClose() {
+    _positionSubscription?.cancel();
     cameraController?.dispose();
     super.onClose();
   }
@@ -88,36 +91,83 @@ class GeoCameraController extends GetxController {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.best,
       );
 
-      currentPosition.value = position;
-      accuracy.value = "${position.accuracy.toStringAsFixed(1)} m";
+      _updatePositionState(position);
       initialCameraPosition.value = LatLng(position.latitude, position.longitude);
       isLocationLoaded.value = true;
+      _updateAddress(position);
 
-      try {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude, 
-          position.longitude
+      late LocationSettings locationSettings;
+      if (Platform.isAndroid) {
+        locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+          intervalDuration: const Duration(milliseconds: 500),
         );
-        if (placemarks.isNotEmpty) {
-          Placemark place = placemarks[0];
-          currentAddress.value = "${place.street}, ${place.subLocality}, ${place.locality}, ${place.postalCode}, ${place.country}";
-        }
-      } catch (e) {
-        currentAddress.value = "Unknown Address";
+      } else if (Platform.isIOS) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.best,
+          activityType: ActivityType.other,
+          distanceFilter: 0,
+        );
+      } else {
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+        );
       }
+
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: locationSettings,
+      ).listen((Position newPosition) {
+        _updatePositionState(newPosition);
+        // Only update address if we move more than 10 meters to avoid API rate limits
+        if (Geolocator.distanceBetween(
+              initialCameraPosition.value.latitude,
+              initialCameraPosition.value.longitude,
+              newPosition.latitude,
+              newPosition.longitude) > 10) {
+          initialCameraPosition.value = LatLng(newPosition.latitude, newPosition.longitude);
+          _updateAddress(newPosition);
+        }
+      });
     } catch (e) {
       Get.snackbar("Error", "Failed to get location: $e");
     }
   }
 
-  Future<String?> captureAndSave({bool saveToGallery = true}) async {
+  void _updatePositionState(Position position) {
+    currentPosition.value = position;
+    accuracy.value = "${position.accuracy.toStringAsFixed(1)} m";
+  }
+
+  Future<void> _updateAddress(Position position) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude, 
+        position.longitude
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        currentAddress.value = "${place.street}, ${place.subLocality}, ${place.locality}, ${place.postalCode}, ${place.country}";
+      }
+    } catch (e) {
+      currentAddress.value = "Unknown Address";
+    }
+  }
+
+  Future<dynamic> captureAndSave({bool saveToGallery = true}) async {
     if (isCapturing.value) return null;
     isCapturing.value = true;
 
     try {
+      // 1. SAVE THE EXACT COORDINATES CURRENTLY ON THE SCREEN BEFORE THE SCREENSHOT
+      final String? capturedLat = currentPosition.value?.latitude?.toStringAsFixed(6);
+      final String? capturedLng = currentPosition.value?.longitude?.toStringAsFixed(6);
+
+      // 2. Take the screenshot
       final Uint8List? rawBytes = await screenshotController.capture();
       
       if (rawBytes == null) {
@@ -176,7 +226,13 @@ class GeoCameraController extends GetxController {
         final File file = File(filePath);
         await file.writeAsBytes(imageBytes);
         
-        Get.back(result: filePath);
+        final Map<String, dynamic> resultMap = {
+          'path': filePath,
+          'latitude': capturedLat,
+          'longitude': capturedLng,
+        };
+        
+        Get.back(result: resultMap);
         
         Future.delayed(Duration(milliseconds: 100), () {
           Get.snackbar("Success", "Photo captured!",
@@ -185,7 +241,7 @@ class GeoCameraController extends GetxController {
             duration: Duration(seconds: 1));
         });
         
-        return filePath;
+        return resultMap;
       }
     } catch (e) {
       Get.snackbar("Error", "Failed to save photo: $e",

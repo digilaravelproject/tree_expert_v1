@@ -137,19 +137,10 @@ class AddTreeController extends GetxController {
       print("DEBUG: TreeNameController changed to: '${treeNameController.text}'");
     });
 
-    // Listen to location updates with proper disposal tracking
-    _positionWorker = ever(locationManager.currentPosition, (Position? position) {
-      if (!_isDisposed && position != null) {
-        _updateLocationFields(position);
-      }
-    });
+    // Removed continuous background tracking as per user request.
+    // Location is now captured once on load and updated only when an image is taken.
 
-    // Listen to address updates with proper disposal tracking
-    _addressWorker = ever(locationManager.currentAddress, (String address) {
-      if (!_isDisposed && address.isNotEmpty) {
-        addressController.text = address;
-      }
-    });
+
   }
 
   void _fetchUserId() {
@@ -275,6 +266,10 @@ class AddTreeController extends GetxController {
   void _updateLocationFields(Position position) {
     // Add null checks to prevent using disposed controllers
     if (_isDisposed) return;
+    
+    // Lock the location fields once a photo has been captured to ensure
+    // the saved coordinates exactly match the photo stamp
+    if (capturedPhotos.isNotEmpty) return;
     
     try {
       latitudeController.text = position.latitude.toStringAsFixed(6);
@@ -477,17 +472,37 @@ class AddTreeController extends GetxController {
     print("[AddTree] Returned from geo camera. Result: $result");
     print("[AddTree] Result type: ${result.runtimeType}");
     
-    if (result != null && result is String) {
-      print("[AddTree] Compressing captured photo: $result");
-      
-      // Perform compression immediately to reduce future CPU load & heat
-      final String? compressedPath = await _compressCapturedImage(result);
-      final finalPath = compressedPath ?? result;
+    if (result != null) {
+      String? imagePath;
 
-      print("[AddTree] Adding photo to list: $finalPath");
-      capturedPhotos.add(finalPath);
+      if (result is String) {
+        imagePath = result;
+      } else if (result is Map) {
+        imagePath = result['path'];
+        
+        // Update latitude and longitude to precisely match the image text
+        if (result['latitude'] != null) {
+          latitudeController.text = result['latitude'];
+        }
+        if (result['longitude'] != null) {
+          longitudeController.text = result['longitude'];
+        }
+      }
+
+      if (imagePath != null) {
+        print("[AddTree] Compressing captured photo: $imagePath");
+        
+        // Perform compression immediately to reduce future CPU load & heat
+        final String? compressedPath = await _compressCapturedImage(imagePath);
+        final finalPath = compressedPath ?? imagePath;
+
+        print("[AddTree] Adding photo to list: $finalPath");
+        capturedPhotos.add(finalPath);
+      } else {
+        print("[AddTree] Image path is null in result");
+      }
     } else {
-      print("[AddTree] Result is null or not a String");
+      print("[AddTree] Result is null");
     }
   }
 
@@ -516,6 +531,11 @@ class AddTreeController extends GetxController {
   void removePhoto(int index) {
     if (index >= 0 && index < capturedPhotos.length) {
       capturedPhotos.removeAt(index);
+      
+      // Resume location updates if all photos are removed
+      if (capturedPhotos.isEmpty) {
+        _captureGPSLocation();
+      }
     }
   }
 

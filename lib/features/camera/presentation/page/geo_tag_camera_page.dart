@@ -124,7 +124,7 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
                                          SizedBox(width: 4),
                                          Expanded(
                                            child: Obx(() => Text(
-                                             "Lat: ${controller.currentPosition.value?.latitude?.toStringAsFixed(5) ?? '...'}  Lng: ${controller.currentPosition.value?.longitude?.toStringAsFixed(5) ?? '...'}",
+                                             "Lat: ${controller.currentPosition.value?.latitude?.toStringAsFixed(6) ?? '...'}  Lng: ${controller.currentPosition.value?.longitude?.toStringAsFixed(6) ?? '...'}",
                                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
                                              maxLines: 1,
                                              overflow: TextOverflow.ellipsis,
@@ -218,16 +218,16 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
               left: 0,
               right: 0,
               child: Center(
-                child: Material(
+                child: Obx(() => Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () async {
+                    onTap: controller.isLocationLoaded.value ? () async {
                       print("Capture button tapped!"); // Debug log
                       // Check if saveToGallery is passed in arguments
                       final args = Get.arguments;
                       final bool saveToGallery = args is Map && args['saveToGallery'] == false ? false : true;
                       await controller.captureAndSave(saveToGallery: saveToGallery);
-                    },
+                    } : null,
                     borderRadius: BorderRadius.circular(40),
                     child: Container(
                       height: 80,
@@ -235,9 +235,12 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 4),
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: controller.isLocationLoaded.value 
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.3),
                         boxShadow: [
-                           BoxShadow(color: Colors.black26, blurRadius: 15, spreadRadius: 2)
+                           if (controller.isLocationLoaded.value)
+                             BoxShadow(color: Colors.black26, blurRadius: 15, spreadRadius: 2)
                         ]
                       ),
                       child: Center(
@@ -245,15 +248,21 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
                           height: 64,
                           width: 64,
                           decoration: BoxDecoration(
-                             color: Colors.white,
+                             color: controller.isLocationLoaded.value ? Colors.white : Colors.grey.shade400,
                              shape: BoxShape.circle,
                           ),
-                          child: Icon(CupertinoIcons.camera_fill, color: Colors.black54, size: 32),
+                          child: controller.isLocationLoaded.value 
+                              ? Icon(CupertinoIcons.camera_fill, color: Colors.black54, size: 32)
+                              : SizedBox(
+                                  height: 24, 
+                                  width: 24, 
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54)
+                                ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                )),
               ),
             ),
           ],

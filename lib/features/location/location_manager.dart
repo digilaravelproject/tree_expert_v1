@@ -1,6 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 
 class LocationManager extends GetxController {
   static LocationManager get instance => Get.find();
@@ -109,10 +110,27 @@ class LocationManager extends GetxController {
 
   /// Start continuous location updates
   void startLocationUpdates() {
-    const LocationSettings locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10, // Update every 10 meters
-    );
+    late LocationSettings locationSettings;
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.best,
+        distanceFilter: 0,
+        intervalDuration: const Duration(milliseconds: 500),
+      );
+    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+      locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.best,
+        activityType: ActivityType.other,
+        distanceFilter: 0,
+        pauseLocationUpdatesAutomatically: false,
+      );
+    } else {
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.best,
+        distanceFilter: 0,
+      );
+    }
 
     Geolocator.getPositionStream(locationSettings: locationSettings).listen(
           (Position position) {
@@ -120,13 +138,13 @@ class LocationManager extends GetxController {
         latitude.value = position.latitude;
         longitude.value = position.longitude;
 
-        // Only geocode if we haven't done it yet OR we've moved significantly (e.g., 50m)
+        // Only geocode if we haven't done it yet OR we've moved significantly (e.g., 10m)
         if (_lastGeocodedPosition == null || 
             Geolocator.distanceBetween(
                 _lastGeocodedPosition!.latitude, 
                 _lastGeocodedPosition!.longitude, 
                 position.latitude, 
-                position.longitude) > 50) {
+                position.longitude) > 10) {
           
           _lastGeocodedPosition = position;
           getAddressFromCoordinates(position.latitude, position.longitude);
