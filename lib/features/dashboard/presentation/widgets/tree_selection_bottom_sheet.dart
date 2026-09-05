@@ -89,14 +89,9 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
     }
   }
 
-  // Get selected trees based on from/to count
+  // Get selected trees based on from/to count (Modified: Now always returns all trees)
   List<TreeModel> get _selectedTrees {
-    if (_selectedFromCount == null || _selectedToCount == null || _allTrees.isEmpty) {
-      return [];
-    }
-    final startIdx = _selectedFromCount! - 1;
-    final endIdx = _selectedToCount!;
-    return _allTrees.sublist(startIdx, endIdx.clamp(0, _allTrees.length));
+    return _allTrees;
   }
 
   // Get tree IDs of selected trees
@@ -405,7 +400,8 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
           
           SizedBox(height: 24),
 
-          // Dropdowns Row
+          // Dropdowns Row (Commented out to remove tree selection)
+          /*
           Row(
             children: [
               // FROM
@@ -562,6 +558,7 @@ class _TreeSelectionBottomSheetState extends State<TreeSelectionBottomSheet> {
               ),
             ],
           ),
+          */
 
           SizedBox(height: 20),
 
