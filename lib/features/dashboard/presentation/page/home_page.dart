@@ -525,29 +525,7 @@ class HomePage extends GetWidget<HomeController> {
                       ),
                     ),
                     SizedBox(height: 16),
-                    // Filter Chips
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Obx(() => Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => controller.setFilter('All'),
-                            child: _buildFilterChip(context, "All", controller.selectedFilter.value == 'All'),
-                          ),
-                          SizedBox(width: 10),
-                          GestureDetector(
-                            onTap: () => controller.setFilter('Ongoing'),
-                            child: _buildFilterChip(context, "Ongoing", controller.selectedFilter.value == 'Ongoing'),
-                          ),
-                          SizedBox(width: 10),
-                          GestureDetector(
-                            onTap: () => controller.setFilter('Completed'),
-                            child: _buildFilterChip(context, "Completed", controller.selectedFilter.value == 'Completed'),
-                          ),
-                        ],
-                      )),
-                    ),
+
                   ],
                 ),
 

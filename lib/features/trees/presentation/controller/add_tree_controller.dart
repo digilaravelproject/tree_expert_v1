@@ -57,6 +57,7 @@ class AddTreeController extends GetxController {
   final RxInt currentTreeNo = 1.obs;
   final RxMap<String, dynamic> fieldRequirements = <String, dynamic>{}.obs;
   final RxBool isAddMultiple = false.obs;
+  final RxBool isPhotoRequired = false.obs;
   
   // IDs
   String? projectId;
@@ -158,6 +159,14 @@ class AddTreeController extends GetxController {
     }
   }
 
+  Future<void> _checkPhotoRequirement(int pId) async {
+    final response = await _treesRepository.checkPhotoRequired(pId);
+    if (response.success && response.data != null) {
+      isPhotoRequired.value = response.data!;
+      print("Photo Required for this project: ${isPhotoRequired.value}");
+    }
+  }
+
   void _onGirthChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 800), () {
@@ -192,6 +201,10 @@ class AddTreeController extends GetxController {
       
       // Initial Tree No = base + 1 + currentIndex
       currentTreeNo.value = baseTreeCount + 1 + currentTreeIndex.value;
+
+      if (projectId != null) {
+        _checkPhotoRequirement(int.parse(projectId!));
+      }
     }
     
     treeNoController.text = "${currentTreeNo.value}";
@@ -628,6 +641,16 @@ class AddTreeController extends GetxController {
     if (treeNameController.text.trim().isEmpty) {
       if (showError) {
         Get.snackbar("Required", "Tree name is required",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white);
+      }
+      return false;
+    }
+
+    if (isPhotoRequired.value && capturedPhotos.isEmpty) {
+      if (showError) {
+        Get.snackbar("Required", "At least one tree photo is required for this project",
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: Colors.red,
             colorText: Colors.white);

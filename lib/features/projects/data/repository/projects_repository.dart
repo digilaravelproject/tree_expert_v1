@@ -159,6 +159,7 @@ class ProjectsRepository {
     required String clientName,
     required String companyName,
     required int stateId,
+    required bool photoRequired,
   }) async {
     try {
       final response = await _apiClient.post(
@@ -168,6 +169,7 @@ class ProjectsRepository {
           'client_name': clientName,
           'company_name': companyName,
           'state_id': stateId,
+          'photo_required': photoRequired,
         },
       );
 
@@ -206,6 +208,7 @@ class ProjectsRepository {
     required String clientName,
     required String companyName,
     required int stateId,
+    required bool photoRequired,
   }) async {
     try {
       final response = await _apiClient.put(
@@ -215,6 +218,7 @@ class ProjectsRepository {
           'client_name': clientName,
           'company_name': companyName,
           'state_id': stateId,
+          'photo_required': photoRequired,
         },
       );
 

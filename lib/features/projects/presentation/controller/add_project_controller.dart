@@ -17,6 +17,7 @@ class AddProjectController extends GetxController {
   // Observable
   final RxBool isEditMode = false.obs;
   final RxBool isLoading = false.obs;
+  final RxBool isPhotoRequired = false.obs;
   final RxList<StateModel> statesList = <StateModel>[].obs;
   final Rx<StateModel?> selectedState = Rx<StateModel?>(null);
   
@@ -61,8 +62,10 @@ class AddProjectController extends GetxController {
          // For now let's wait for matching in the UI or handling it here if we really needed tight binding
       }
       
+      
       clientNameController.text = editingProject!.clientName;
       companyNameController.text = editingProject!.companyName;
+      isPhotoRequired.value = editingProject!.photoRequired;
     }
   }
   
@@ -102,6 +105,7 @@ class AddProjectController extends GetxController {
         clientName: clientNameController.text.trim(),
         companyName: companyNameController.text.trim(),
         stateId: stateId,
+        photoRequired: isPhotoRequired.value,
       );
     } else {
       print("DEBUG: Sending create request with: ${projectNameController.text}, ${clientNameController.text}, ${companyNameController.text}, ${selectedState.value!.id}");
@@ -111,6 +115,7 @@ class AddProjectController extends GetxController {
         clientName: clientNameController.text.trim(),
         companyName: companyNameController.text.trim(),
         stateId: selectedState.value!.id,
+        photoRequired: isPhotoRequired.value,
       );
     }
     

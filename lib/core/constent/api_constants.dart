@@ -45,6 +45,7 @@ class ApiConstants {
     static const String treeInProject = "tree_in_project";
     static const String addTree = "tree/add";
     static const String getProjectExportLinks = "get_project_export_links";
+    static const String checkPhotoRequired = "customer/check-photo-required";
 
 
     // Payment

@@ -61,7 +61,6 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                                 label: "Tree No",
                                 reqKey: "tree_no",
                                 hint: "Auto",
-                                enabled: false,
                               ),
                             ),
                           ],

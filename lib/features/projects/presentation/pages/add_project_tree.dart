@@ -174,6 +174,29 @@ class AddProjectPage extends GetWidget<AddProjectController> {
                           readOnly: true,
                           onTap: () => _showStateSelectionBottomSheet(context),
                         ),
+                        SizedBox(height: 16),
+                        
+                        // Photo Required Toggle
+                        Obx(() => SwitchListTile(
+                          title: Text(
+                            "Photo Required",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            "Require photo upload for trees in this project",
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                          ),
+                          value: controller.isPhotoRequired.value,
+                          onChanged: (value) {
+                            controller.isPhotoRequired.value = value;
+                          },
+                          activeColor: context.theme.primaryColor,
+                          contentPadding: EdgeInsets.zero,
+                        )),
                       ],
                     ),
                   ),

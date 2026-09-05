@@ -211,6 +211,29 @@ class TreesRepository {
       return ApiResponse.error('Error adding tree: $e');
     }
   }
+
+  Future<ApiResponse<bool>> checkPhotoRequired(int projectId) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.checkPhotoRequired,
+        data: {'project_id': projectId},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map && data['status'] == true) {
+          final isRequired = data['data']?['photo_required'] ?? false;
+          return ApiResponse.success(isRequired);
+        } else {
+          return ApiResponse.error(data is Map ? (data['message'] ?? 'Failed to check photo required') : 'Failed');
+        }
+      } else {
+        return ApiResponse.error('Failed to check photo required');
+      }
+    } catch (e) {
+      return ApiResponse.error('Error checking photo required: $e');
+    }
+  }
 }
 
 

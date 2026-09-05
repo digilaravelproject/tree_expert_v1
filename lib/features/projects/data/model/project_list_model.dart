@@ -17,6 +17,7 @@ class ProjectListModel {
   final int treesCount;
   final StateModel? state;
   final FieldOfficerModel? fieldOfficer;
+  final bool photoRequired;
 
   ProjectListModel({
     required this.id,
@@ -35,6 +36,7 @@ class ProjectListModel {
     this.treesCount = 0,
     this.state,
     this.fieldOfficer,
+    this.photoRequired = false,
   });
 
   factory ProjectListModel.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,7 @@ class ProjectListModel {
       fieldOfficer: json['field_officer'] != null
           ? FieldOfficerModel.fromJson(json['field_officer'])
           : null,
+      photoRequired: json['photo_required'] ?? false,
     );
   }
 }
