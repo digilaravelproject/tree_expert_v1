@@ -72,6 +72,7 @@ class AddTreeController extends GetxController {
   
   Timer? _debounce;
   final RxBool isCalculating = false.obs;
+  bool _suppressGirthListener = false; // Prevents overwriting metrics when loading drafts or resetting
 
   // Local storage for multi-tree flow
   final RxList<TreeEntry> localTrees = <TreeEntry>[].obs;
@@ -168,10 +169,21 @@ class AddTreeController extends GetxController {
   }
 
   void _onGirthChanged() {
+    if (_suppressGirthListener) return;
     if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // If girth was cleared by user, clear auto-calculated metrics
+    if (girthController.text.trim().isEmpty) {
+      heightController.clear();
+      canopyController.clear();
+      ageController.clear();
+      return;
+    }
+
     _debounce = Timer(const Duration(milliseconds: 800), () {
-       if (girthController.text.isNotEmpty) {
-          final girth = double.tryParse(girthController.text);
+       if (_suppressGirthListener) return;
+       if (girthController.text.trim().isNotEmpty) {
+          final girth = double.tryParse(girthController.text.trim());
           if (girth != null) {
             calculateMetrics(girth);
           }
@@ -503,14 +515,9 @@ class AddTreeController extends GetxController {
       }
 
       if (imagePath != null) {
-        print("[AddTree] Compressing captured photo: $imagePath");
-        
-        // Perform compression immediately to reduce future CPU load & heat
-        final String? compressedPath = await _compressCapturedImage(imagePath);
-        final finalPath = compressedPath ?? imagePath;
-
-        print("[AddTree] Adding photo to list: $finalPath");
-        capturedPhotos.add(finalPath);
+        // Photo is already compressed at 80% JPEG in GeoCameraController, add directly for instant UI display
+        print("[AddTree] Adding captured photo directly to list: $imagePath");
+        capturedPhotos.add(imagePath);
       } else {
         print("[AddTree] Image path is null in result");
       }
@@ -889,32 +896,38 @@ class AddTreeController extends GetxController {
 
   void _loadTreeFromLocal(int index) {
     if (index >= 0 && index < localTrees.length) {
-      final entry = localTrees[index];
-      wardPlotNoController.text = entry.wardPlotNo ?? '';
-      plotNoController.text = entry.plotNo ?? '';
-      treeNoController.text = entry.treeNo ?? '';
-      treeNameController.text = entry.treeName ?? '';
-      selectedTreeId = entry.treeId;
-      scientificNameController.text = entry.scientificName ?? '';
-      selectedScientificNameId = entry.scientificNameId;
-      familyController.text = entry.family ?? '';
-      selectedFamilyId = entry.familyId;
-      girthController.text = entry.girth ?? '';
-      heightController.text = entry.height ?? '';
-      canopyController.text = entry.canopy ?? '';
-      ageController.text = entry.age ?? '';
-      selectedCondition.value = entry.condition ?? 'Good';
-      selectedProposedFor.value = entry.proposedFor ?? 'Retain';
-      selectedOwnership.value = entry.ownership ?? 'Pvt';
-      addressController.text = entry.address ?? '';
-      landmarkController.text = entry.landmark ?? '';
-      concernPersonController.text = entry.concernPerson ?? '';
-      remarkController.text = entry.remark ?? '';
-      latitudeController.text = entry.latitude ?? '';
-      longitudeController.text = entry.longitude ?? '';
-      accuracyController.text = entry.accuracy ?? '';
-      selectedUnit.value = entry.unit ?? 'Meter'; // Restore unit
-      capturedPhotos.value = List.from(entry.photos);
+      _suppressGirthListener = true;
+      _debounce?.cancel();
+      try {
+        final entry = localTrees[index];
+        wardPlotNoController.text = entry.wardPlotNo ?? '';
+        plotNoController.text = entry.plotNo ?? '';
+        treeNoController.text = entry.treeNo ?? '';
+        treeNameController.text = entry.treeName ?? '';
+        selectedTreeId = entry.treeId;
+        scientificNameController.text = entry.scientificName ?? '';
+        selectedScientificNameId = entry.scientificNameId;
+        familyController.text = entry.family ?? '';
+        selectedFamilyId = entry.familyId;
+        girthController.text = entry.girth ?? '';
+        heightController.text = entry.height ?? '';
+        canopyController.text = entry.canopy ?? '';
+        ageController.text = entry.age ?? '';
+        selectedCondition.value = entry.condition ?? 'Good';
+        selectedProposedFor.value = entry.proposedFor ?? 'Retain';
+        selectedOwnership.value = entry.ownership ?? 'Pvt';
+        addressController.text = entry.address ?? '';
+        landmarkController.text = entry.landmark ?? '';
+        concernPersonController.text = entry.concernPerson ?? '';
+        remarkController.text = entry.remark ?? '';
+        latitudeController.text = entry.latitude ?? '';
+        longitudeController.text = entry.longitude ?? '';
+        accuracyController.text = entry.accuracy ?? '';
+        selectedUnit.value = entry.unit ?? 'Feet'; // Restore unit ('Feet' is the app default)
+        capturedPhotos.value = List.from(entry.photos);
+      } finally {
+        _suppressGirthListener = false;
+      }
     }
   }
 
@@ -928,35 +941,29 @@ class AddTreeController extends GetxController {
   }
 
   void _resetFormForNext() {
-    // Keep Ward/Plot if needed? Usually yes for sequential add.
-    // Increment Tree No based on value
-    // Parse the numeric part from "T-123"
-    int nextNo = currentTreesCount + localTrees.length + 1;
-    currentTreeNo.value = nextNo; 
-    treeNoController.text = "$nextNo";
-    
-    // Keep tree selection for multiple add - don't clear tree-related fields
-    // treeNameController.clear(); // Keep tree name
-    // selectedTreeId = null; // Keep selected tree ID
-    // scientificNameController.clear(); // Keep scientific name
-    // selectedScientificNameId = null; // Keep scientific name ID
-    // familyController.clear(); // Keep family
-    // selectedFamilyId = null; // Keep family ID
-    
-    // Clear measurement fields for new tree
-    girthController.clear();
-    heightController.clear();
-    canopyController.clear();
-    ageController.clear();
-    // landmarkController.clear(); // Keep landmark?
-    // concernPersonController.clear(); // Keep?
-    remarkController.clear();
-    capturedPhotos.clear();
-    selectedCondition.value = 'Good';
-    selectedProposedFor.value = 'Retain';
-    
-    // Refresh GPS
-    _captureGPSLocation();
+    _suppressGirthListener = true;
+    _debounce?.cancel();
+    try {
+      // Increment Tree No based on value
+      int nextNo = currentTreesCount + localTrees.length + 1;
+      currentTreeNo.value = nextNo; 
+      treeNoController.text = "$nextNo";
+      
+      // Clear measurement fields for new tree
+      girthController.clear();
+      heightController.clear();
+      canopyController.clear();
+      ageController.clear();
+      remarkController.clear();
+      capturedPhotos.clear();
+      selectedCondition.value = 'Good';
+      selectedProposedFor.value = 'Retain';
+      
+      // Refresh GPS
+      _captureGPSLocation();
+    } finally {
+      _suppressGirthListener = false;
+    }
   }
 
   Future<void> saveAsDraftAndExit() async {

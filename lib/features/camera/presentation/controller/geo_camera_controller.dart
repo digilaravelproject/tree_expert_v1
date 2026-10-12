@@ -167,8 +167,10 @@ class GeoCameraController extends GetxController {
       final String? capturedLat = currentPosition.value?.latitude?.toStringAsFixed(6);
       final String? capturedLng = currentPosition.value?.longitude?.toStringAsFixed(6);
 
-      // 2. Take the screenshot
-      final Uint8List? rawBytes = await screenshotController.capture();
+      // 2. Take the screenshot (pixelRatio: 1.5 produces sharp Full HD quality with 3x faster rasterization)
+      final Uint8List? rawBytes = await screenshotController.capture(
+        pixelRatio: 1.5,
+      );
       
       if (rawBytes == null) {
         Get.snackbar("Error", "Failed to capture image",

@@ -253,13 +253,16 @@ class AddTreesPage extends GetWidget<AddTreeController> {
                       //title: "Tree Status",
                      // icon: Icons.health_and_safety,
                       children: [
-                        _buildTextField(
+                        Obx(() => _buildTextField(
                           textController: controller.ageController,
                           label: "Age (years)",
                           reqKey: "age",
-                          hint: "Enter age",
+                          hint: controller.isCalculating.value
+                              ? "Calculating..."
+                              : "Enter age",
                           keyboardType: TextInputType.number,
-                        ),
+                          enabled: !controller.isCalculating.value,
+                        )),
                         SizedBox(height: 8),
                         _buildDropdown(
                           label: "Condition",

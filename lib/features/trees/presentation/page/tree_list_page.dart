@@ -385,7 +385,10 @@ class _TreeDetailsPageState extends State<TreeDetailsPage> {
                          _buildAttributeItem(context, "Ownership", tree.ownership ?? "N/A"),
                          _buildAttributeItem(context, "Girth (cm)", tree.girth ?? "N/A"),
                          _buildAttributeItem(context, "Height", tree.height == null ? "N/A" : "${tree.height}"),
-                         _buildAttributeItem(context, "Age (Yrs)", "N/A"), // Age not in model yet, placeholder
+                         _buildAttributeItem(context, "Canopy", tree.canopy == null ? "N/A" : "${tree.canopy}"),
+                         _buildAttributeItem(context, "Age (Yrs)", tree.age != null ? "${tree.age}" : "N/A"),
+                         _buildAttributeItem(context, "Condition", tree.condition.isNotEmpty ? tree.condition : "N/A"),
+                         _buildAttributeItem(context, "Ward/Plot", tree.wardPlotNo.isNotEmpty ? tree.wardPlotNo : "N/A"),
                        ],
                      ),
                      

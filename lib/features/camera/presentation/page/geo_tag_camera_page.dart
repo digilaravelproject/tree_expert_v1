@@ -212,57 +212,113 @@ class GeoTagCameraPage extends GetView<GeoCameraController> {
               ),
             ),
 
+            // --- PROCESSING / CAPTURING INDICATOR ---
+            Obx(() {
+              if (!controller.isCapturing.value) return const SizedBox.shrink();
+              return Positioned(
+                bottom: 255,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white30, width: 1),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 3)),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.greenAccent),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          "Saving Geo-tagged Photo...",
+                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+
             // Capture Button (Floating at Bottom Center - Moved up to avoid overlap)
             Positioned(
               bottom: 160, 
               left: 0,
               right: 0,
               child: Center(
-                child: Obx(() => Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: controller.isLocationLoaded.value ? () async {
-                      print("Capture button tapped!"); // Debug log
-                      // Check if saveToGallery is passed in arguments
-                      final args = Get.arguments;
-                      final bool saveToGallery = args is Map && args['saveToGallery'] == false ? false : true;
-                      await controller.captureAndSave(saveToGallery: saveToGallery);
-                    } : null,
-                    borderRadius: BorderRadius.circular(40),
-                    child: Container(
-                      height: 80,
-                      width: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 4),
-                        color: controller.isLocationLoaded.value 
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : Colors.black.withValues(alpha: 0.3),
-                        boxShadow: [
-                           if (controller.isLocationLoaded.value)
-                             BoxShadow(color: Colors.black26, blurRadius: 15, spreadRadius: 2)
-                        ]
-                      ),
-                      child: Center(
-                        child: Container(
-                          height: 64,
-                          width: 64,
-                          decoration: BoxDecoration(
-                             color: controller.isLocationLoaded.value ? Colors.white : Colors.grey.shade400,
-                             shape: BoxShape.circle,
+                child: Obx(() {
+                  final bool canCapture = controller.isLocationLoaded.value && !controller.isCapturing.value;
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: canCapture ? () async {
+                        print("Capture button tapped!"); // Debug log
+                        // Check if saveToGallery is passed in arguments
+                        final args = Get.arguments;
+                        final bool saveToGallery = args is Map && args['saveToGallery'] == false ? false : true;
+                        await controller.captureAndSave(saveToGallery: saveToGallery);
+                      } : null,
+                      borderRadius: BorderRadius.circular(40),
+                      child: Container(
+                        height: 80,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: controller.isCapturing.value 
+                                ? Colors.greenAccent 
+                                : Colors.white.withValues(alpha: 0.5), 
+                            width: 4
                           ),
-                          child: controller.isLocationLoaded.value 
-                              ? Icon(CupertinoIcons.camera_fill, color: Colors.black54, size: 32)
-                              : SizedBox(
-                                  height: 24, 
-                                  width: 24, 
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54)
-                                ),
+                          color: canCapture 
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.3),
+                          boxShadow: [
+                             if (canCapture)
+                               const BoxShadow(color: Colors.black26, blurRadius: 15, spreadRadius: 2)
+                          ]
+                        ),
+                        child: Center(
+                          child: Container(
+                            height: 64,
+                            width: 64,
+                            decoration: BoxDecoration(
+                               color: canCapture ? Colors.white : Colors.grey.shade300,
+                               shape: BoxShape.circle,
+                            ),
+                            child: controller.isCapturing.value
+                                ? const Center(
+                                    child: SizedBox(
+                                      height: 28,
+                                      width: 28,
+                                      child: CircularProgressIndicator(strokeWidth: 3, color: Colors.black87),
+                                    ),
+                                  )
+                                : controller.isLocationLoaded.value 
+                                    ? const Icon(CupertinoIcons.camera_fill, color: Colors.black54, size: 32)
+                                    : const Center(
+                                        child: SizedBox(
+                                          height: 24, 
+                                          width: 24, 
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54)
+                                        ),
+                                      ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                )),
+                  );
+                }),
               ),
             ),
           ],
